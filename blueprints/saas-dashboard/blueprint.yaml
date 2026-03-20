@@ -1,0 +1,138 @@
+name: saas-dashboard
+display_name: "SaaS Dashboard"
+description: "Full-stack SaaS dashboard with monorepo structure, docs, and AI context"
+version: "1.0.0"
+stack: "fullstack"
+
+metadata:
+  architecture: "monorepo"
+  default_pages:
+    - dashboard
+    - detail
+    - settings
+
+variables:
+  - name: project_name
+    description: "Project slug (lowercase, hyphens)"
+    type: string
+    default: "my-saas-app"
+    required: true
+
+  - name: display_name
+    description: "Human-readable project name"
+    type: string
+    default: "My SaaS App"
+    required: true
+
+  - name: description
+    description: "Short project description"
+    type: string
+    default: "A modern SaaS dashboard application"
+    required: true
+
+  - name: stack
+    description: "Technology stack"
+    type: choice
+    choices:
+      - "nextjs-fullstack"
+      - "symfony-api-react"
+      - "django-htmx"
+      - "rails-hotwire"
+    default: "nextjs-fullstack"
+    required: true
+
+  - name: architecture_style
+    description: "Architecture approach"
+    type: choice
+    choices:
+      - "monorepo"
+      - "modular-monolith"
+      - "microservices"
+    default: "monorepo"
+    required: true
+
+  - name: use_ddd
+    description: "Use Domain-Driven Design patterns"
+    type: boolean
+    default: false
+
+  - name: use_auth
+    description: "Include authentication setup"
+    type: boolean
+    default: true
+
+  - name: use_docker
+    description: "Include Docker configuration"
+    type: boolean
+    default: true
+
+  - name: use_ci
+    description: "Include CI/CD pipeline config"
+    type: boolean
+    default: true
+
+  - name: test_strategy
+    description: "Testing approach"
+    type: choice
+    choices:
+      - "unit-and-integration"
+      - "e2e-focused"
+      - "full-pyramid"
+    default: "unit-and-integration"
+    required: true
+
+  - name: design_style
+    description: "UI design direction"
+    type: choice
+    choices:
+      - "minimal-clean"
+      - "corporate-professional"
+      - "playful-modern"
+    default: "minimal-clean"
+    required: true
+
+  - name: ai_context
+    description: "Generate AI context files for agent workflows"
+    type: boolean
+    default: true
+
+templates:
+  - source: README.md.j2
+    target: README.md
+
+  - source: docs/architecture.md.j2
+    target: docs/architecture.md
+
+  - source: docs/ways-of-working.md.j2
+    target: docs/ways-of-working.md
+
+  - source: docs/adrs/0001-architecture.md.j2
+    target: docs/adrs/0001-architecture.md
+
+  - source: docs/page-templates/dashboard-page.md.j2
+    target: docs/page-templates/dashboard-page.md
+
+  - source: docs/page-templates/detail-page.md.j2
+    target: docs/page-templates/detail-page.md
+
+  - source: docs/page-templates/settings-page.md.j2
+    target: docs/page-templates/settings-page.md
+
+  - source: AI_CONTEXT.md.j2
+    target: AI_CONTEXT.md
+    condition: ai_context
+
+static_files:
+  - source: .editorconfig
+    target: .editorconfig
+
+  - source: .gitignore
+    target: .gitignore
+
+directories:
+  - apps/web
+  - apps/api
+  - packages/ui
+  - packages/shared
+  - docs/adrs
+  - docs/page-templates

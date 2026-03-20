@@ -1,0 +1,152 @@
+"""CLI entry point using Typer."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Annotated
+
+import typer
+from rich.console import Console
+
+from scaffoldkit.blueprint_loader import discover_blueprints, get_blueprints_dir, load_blueprint
+from scaffoldkit.generator import generate
+from scaffoldkit.models import GenerationContext
+from scaffoldkit.scaffold_blueprint import create_blueprint
+from scaffoldkit.tui import (
+    collect_variables,
+    confirm_generation,
+    print_result,
+    prompt_target_dir,
+    select_blueprint,
+)
+
+app = typer.Typer(
+    name="scaffoldkit",
+    help="AI-aided project scaffolding tool.",
+    no_args_is_help=True,
+)
+console = Console()
+
+
+@app.command()
+def new(
+    blueprint_name: Annotated[
+        str | None, typer.Argument(help="Blueprint name (interactive if omitted)")
+    ] = None,
+    target: Annotated[Path | None, typer.Option("--target", "-t", help="Target directory")] = None,
+    dry_run: Annotated[
+        bool, typer.Option("--dry-run", "-n", help="Preview without writing files")
+    ] = False,
+    overwrite: Annotated[
+        bool, typer.Option("--overwrite", help="Overwrite existing files")
+    ] = False,
+    blueprints_dir: Annotated[
+        Path | None, typer.Option("--blueprints-dir", "-b", help="Custom blueprints dir")
+    ] = None,
+) -> None:
+    """Generate a new project from a blueprint."""
+    bp_dir = blueprints_dir or get_blueprints_dir()
+
+    # Select blueprint
+    if blueprint_name:
+        bp_path = bp_dir / blueprint_name
+        if not (bp_path / "blueprint.yaml").exists():
+            console.print(f"[red]Blueprint '{blueprint_name}' not found in {bp_dir}[/red]")
+            raise typer.Exit(1)
+        blueprint = load_blueprint(bp_path)
+    else:
+        result = select_blueprint(bp_dir)
+        if result is None:
+            raise typer.Exit(1)
+        blueprint, bp_path = result
+
+    # Collect variables
+    variables = collect_variables(blueprint)
+    if variables is None:
+        raise typer.Exit(1)
+
+    # Determine target directory
+    project_name = variables.get("project_name", blueprint.name)
+    if target is None:
+        target = prompt_target_dir(project_name)
+        if target is None:
+            raise typer.Exit(1)
+    else:
+        target = target.resolve()
+
+    # Build context
+    context = GenerationContext(
+        blueprint=blueprint,
+        blueprint_path=bp_path,
+        variables=variables,
+        target_dir=target,
+        dry_run=dry_run,
+        overwrite=overwrite,
+    )
+
+    # Confirm
+    if not confirm_generation(context):
+        console.print("[yellow]Aborted.[/yellow]")
+        raise typer.Exit(0)
+
+    # Generate
+    gen_result = generate(context)
+    print_result(gen_result)
+
+    if not gen_result.success:
+        raise typer.Exit(1)
+
+
+@app.command(name="init-blueprint")
+def init_blueprint(
+    name: Annotated[str, typer.Argument(help="Blueprint name (e.g. my-custom-stack)")],
+    blueprints_dir: Annotated[
+        Path | None, typer.Option("--blueprints-dir", "-b", help="Custom blueprints dir")
+    ] = None,
+) -> None:
+    """Scaffold a new blueprint with starter files."""
+    bp_dir = blueprints_dir or get_blueprints_dir()
+    target = bp_dir / name
+
+    if target.exists():
+        console.print(f"[red]Directory already exists: {target}[/red]")
+        raise typer.Exit(1)
+
+    target.mkdir(parents=True)
+    created = create_blueprint(target, name)
+
+    console.print(f"[green bold]Blueprint '{name}' created at {target}[/green bold]\n")
+    for f in created:
+        console.print(f"  [green]✓[/green] {f}")
+
+    console.print("\n[bold]Next steps:[/bold]")
+    console.print(f"  1. Edit [cyan]{target / 'blueprint.yaml'}[/cyan] to add variables")
+    console.print(f"  2. Add templates in [cyan]{target / 'templates'}[/cyan]")
+    console.print(f"  3. Add static files in [cyan]{target / 'static'}[/cyan]")
+    console.print("  4. Run [cyan]scaffoldkit list[/cyan] to verify")
+    console.print(f"  5. Run [cyan]scaffoldkit new {name}[/cyan] to test")
+
+
+@app.command(name="list")
+def list_blueprints(
+    blueprints_dir: Annotated[Path | None, typer.Option("--blueprints-dir", "-b")] = None,
+) -> None:
+    """List available blueprints."""
+    bp_dir = blueprints_dir or get_blueprints_dir()
+    available = discover_blueprints(bp_dir)
+
+    if not available:
+        console.print("[yellow]No blueprints found.[/yellow]")
+        raise typer.Exit(0)
+
+    console.print("[bold]Available blueprints:[/bold]\n")
+    for name, path in available:
+        bp = load_blueprint(path)
+        console.print(f"  [cyan]{name}[/cyan] - {bp.display_name}")
+        if bp.description:
+            console.print(f"    {bp.description}")
+        console.print()
+
+
+if __name__ == "__main__":
+    app()
