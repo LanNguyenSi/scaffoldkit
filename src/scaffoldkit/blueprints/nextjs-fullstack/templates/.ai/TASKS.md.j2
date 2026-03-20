@@ -1,0 +1,76 @@
+# .ai/TASKS.md — Work Packages
+
+> Self-contained tasks for agents. Each task can be implemented independently.
+
+## Priority Levels
+- **P0** — Must have for production launch
+- **P1** — Important for user experience
+- **P2** — Nice to have, future work
+
+## Template
+
+```markdown
+### Task XXX: [Title]
+**Priority:** P0/P1/P2
+**Estimate:** Xh
+**Status:** Open / In Progress / Done
+
+**Problem:** What's missing or broken.
+**Solution:** What to build.
+**Files:** Which files to create/modify.
+**Notes:** Implementation hints, patterns to follow.
+```
+
+## Tasks
+
+### Task 001: Initial Data Model
+**Priority:** P0
+**Estimate:** 2h
+**Status:** Open
+
+**Problem:** No database schema defined yet.
+**Solution:** Design Prisma schema based on domain requirements.
+**Files:** `prisma/schema.prisma`
+**Notes:** Include all relationships, enums, indexes. Run `npx prisma migrate dev --name init`.
+
+### Task 002: Public Pages
+**Priority:** P0
+**Estimate:** 4h
+**Status:** Open
+
+**Problem:** No public-facing UI.
+**Solution:** Build listing + detail pages.
+**Files:** `app/(public)/`, `components/public/`
+**Notes:** Server Components, responsive, {{ language }} UI text.
+
+### Task 003: Admin Panel
+**Priority:** P0
+**Estimate:** 4h
+**Status:** Open
+
+**Problem:** No admin interface.
+**Solution:** Build login, dashboard, CRUD pages.
+**Files:** `app/admin/`, `components/admin/`, `lib/auth.ts`
+**Notes:** JWT auth, protected routes, mobile-responsive.
+
+### Task 004: API Endpoints
+**Priority:** P0
+**Estimate:** 3h
+**Status:** Open
+
+**Problem:** No REST API.
+**Solution:** Build CRUD endpoints with auth.
+**Files:** `app/api/`
+**Notes:** Use transactions for related mutations. Return proper HTTP status codes.
+{% if use_docker %}
+
+### Task 005: Docker Deployment
+**Priority:** P0
+**Estimate:** 2h
+**Status:** Open
+
+**Problem:** No production deployment config.
+**Solution:** Multi-stage Dockerfile + docker-compose.traefik.yml
+**Files:** `Dockerfile`, `docker-compose.traefik.yml`
+**Notes:** Remember `prisma generate` in both deps AND builder stages.
+{% endif %}
