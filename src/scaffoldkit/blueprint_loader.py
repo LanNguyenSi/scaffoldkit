@@ -11,7 +11,7 @@ from scaffoldkit.models import Blueprint
 
 BLUEPRINTS_DIR = Path(
     os.environ.get("SCAFFOLDKIT_BLUEPRINTS_DIR", "")
-    or str(Path(__file__).resolve().parent.parent.parent / "blueprints")
+    or str(Path(__file__).resolve().parent / "blueprints")
 )
 
 
