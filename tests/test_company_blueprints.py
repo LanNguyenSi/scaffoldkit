@@ -8,7 +8,7 @@ from scaffoldkit.blueprint_loader import load_blueprint
 from scaffoldkit.generator import generate
 from scaffoldkit.models import GenerationContext
 
-BLUEPRINTS_DIR = Path(__file__).resolve().parent.parent / "blueprints"
+BLUEPRINTS_DIR = Path(__file__).resolve().parent.parent / "src" / "scaffoldkit" / "blueprints"
 
 
 def _generate(tmp_path: Path, blueprint_name: str, variables: dict) -> Path:

@@ -8,7 +8,7 @@ from scaffoldkit.blueprint_loader import discover_blueprints, load_blueprint
 from scaffoldkit.models import Blueprint
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
-BLUEPRINTS_DIR = Path(__file__).resolve().parent.parent / "blueprints"
+BLUEPRINTS_DIR = Path(__file__).resolve().parent.parent / "src" / "scaffoldkit" / "blueprints"
 
 
 class TestDiscoverBlueprints:

@@ -6,7 +6,7 @@ from scaffoldkit.blueprint_loader import load_blueprint
 from scaffoldkit.generator import build_template_context, generate
 from scaffoldkit.models import GenerationContext
 
-BLUEPRINTS_DIR = Path(__file__).resolve().parent.parent / "blueprints"
+BLUEPRINTS_DIR = Path(__file__).resolve().parent.parent / "src" / "scaffoldkit" / "blueprints"
 
 
 def _context(tmp_path: Path, **overrides) -> GenerationContext:

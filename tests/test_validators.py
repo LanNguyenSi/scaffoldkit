@@ -5,7 +5,7 @@ from pathlib import Path
 from scaffoldkit.blueprint_loader import load_blueprint
 from scaffoldkit.validators import validate_variables
 
-BLUEPRINTS_DIR = Path(__file__).resolve().parent.parent / "blueprints"
+BLUEPRINTS_DIR = Path(__file__).resolve().parent.parent / "src" / "scaffoldkit" / "blueprints"
 
 
 def _load_saas():
