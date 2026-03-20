@@ -9,7 +9,11 @@ from scaffoldkit.renderer import create_jinja_env, render_string, render_templat
 
 TEMPLATE_DIR = (
     Path(__file__).resolve().parent.parent
-    / "src" / "scaffoldkit" / "blueprints" / "saas-dashboard" / "templates"
+    / "src"
+    / "scaffoldkit"
+    / "blueprints"
+    / "saas-dashboard"
+    / "templates"
 )
 
 
