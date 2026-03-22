@@ -102,6 +102,9 @@ variables:
     default: true
 
 templates:
+  - source: Makefile.j2
+    target: Makefile
+
   - source: README.md.j2
     target: README.md
 
