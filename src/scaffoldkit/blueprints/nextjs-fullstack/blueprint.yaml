@@ -113,6 +113,12 @@ templates:
     target: Dockerfile.dev
     condition: use_docker
 
+  - source: .husky-pre-commit.j2
+    target: .husky-pre-commit
+
+  - source: lint-staged.config.js.j2
+    target: lint-staged.config.js
+
   - source: README.md.j2
     target: README.md
 
