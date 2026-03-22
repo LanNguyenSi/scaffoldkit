@@ -1,4 +1,4 @@
-.PHONY: install{% if use_docker %} dev dev-docker docker-up docker-down{% else %} dev{% endif %} build test lint format ci clean help
+.PHONY: install hooks{% if use_docker %} dev dev-docker docker-up docker-down{% else %} dev{% endif %} build test lint format ci clean help
 
 # Default target
 .DEFAULT_GOAL := help
@@ -13,6 +13,11 @@ install: ## Install dependencies
 	npm ci
 {% if db_provider != 'sqlite' %}	npx prisma generate
 {% endif %}
+
+hooks: ## Set up Git pre-commit hooks (Husky + lint-staged)
+	npx husky init
+	cp .husky-pre-commit .husky/pre-commit
+	chmod +x .husky/pre-commit
 {% if use_docker %}
 dev: ## Start development server (local)
 	npm run dev
