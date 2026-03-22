@@ -105,6 +105,14 @@ templates:
   - source: Makefile.j2
     target: Makefile
 
+  - source: docker-compose.dev.yml.j2
+    target: docker-compose.dev.yml
+    condition: use_docker
+
+  - source: Dockerfile.dev.j2
+    target: Dockerfile.dev
+    condition: use_docker
+
   - source: README.md.j2
     target: README.md
 
@@ -152,6 +160,10 @@ static_files:
 
   - source: .gitignore
     target: .gitignore
+
+  - source: .dockerignore
+    target: .dockerignore
+    condition: use_docker
 
 directories:
   - app/(public)
