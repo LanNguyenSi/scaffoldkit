@@ -102,7 +102,7 @@ def new(
     # Run npm install if package.json exists and not skipped
     if not dry_run and not no_install and (target / "package.json").exists():
         import subprocess
-        
+
         console.print("\n[bold cyan]Running npm install...[/bold cyan]")
         try:
             subprocess.run(
@@ -113,7 +113,8 @@ def new(
             )
             console.print("[green]✓ npm install completed[/green]")
         except subprocess.CalledProcessError as e:
-            console.print(f"[yellow]Warning: npm install failed with exit code {e.returncode}[/yellow]")
+            msg = f"npm install failed with exit code {e.returncode}"
+            console.print(f"[yellow]Warning: {msg}[/yellow]")
         except FileNotFoundError:
             console.print("[yellow]Warning: npm not found in PATH, skipping install[/yellow]")
 
