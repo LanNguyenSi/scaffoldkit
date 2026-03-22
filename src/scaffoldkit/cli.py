@@ -40,6 +40,9 @@ def new(
     overwrite: Annotated[
         bool, typer.Option("--overwrite", help="Overwrite existing files")
     ] = False,
+    no_install: Annotated[
+        bool, typer.Option("--no-install", help="Skip npm install after generation")
+    ] = False,
     blueprints_dir: Annotated[
         Path | None, typer.Option("--blueprints-dir", "-b", help="Custom blueprints dir")
     ] = None,
@@ -95,6 +98,24 @@ def new(
 
     if not gen_result.success:
         raise typer.Exit(1)
+
+    # Run npm install if package.json exists and not skipped
+    if not dry_run and not no_install and (target / "package.json").exists():
+        import subprocess
+        
+        console.print("\n[bold cyan]Running npm install...[/bold cyan]")
+        try:
+            subprocess.run(
+                ["npm", "install"],
+                cwd=target,
+                check=True,
+                capture_output=False,
+            )
+            console.print("[green]✓ npm install completed[/green]")
+        except subprocess.CalledProcessError as e:
+            console.print(f"[yellow]Warning: npm install failed with exit code {e.returncode}[/yellow]")
+        except FileNotFoundError:
+            console.print("[yellow]Warning: npm not found in PATH, skipping install[/yellow]")
 
 
 @app.command(name="init-blueprint")
