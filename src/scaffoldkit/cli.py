@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
 from rich.console import Console
@@ -46,6 +46,12 @@ def new(
     blueprints_dir: Annotated[
         Path | None, typer.Option("--blueprints-dir", "-b", help="Custom blueprints dir")
     ] = None,
+    var: Annotated[
+        list[str] | None, typer.Option("--var", help="Variable in key=value format (repeatable)")
+    ] = None,
+    non_interactive: Annotated[
+        bool, typer.Option("--non-interactive", help="Non-interactive mode (use defaults)")
+    ] = False,
 ) -> None:
     """Generate a new project from a blueprint."""
     bp_dir = blueprints_dir or get_blueprints_dir()
@@ -63,8 +69,24 @@ def new(
             raise typer.Exit(1)
         blueprint, bp_path = result
 
-    # Collect variables
-    variables = collect_variables(blueprint)
+    # Parse --var flags into dict
+    var_dict: dict[str, Any] = {}
+    if var:
+        for v in var:
+            if "=" not in v:
+                console.print(f"[red]Invalid --var format: '{v}' (expected key=value)[/red]")
+                raise typer.Exit(1)
+            key, value = v.split("=", 1)
+            # Convert common boolean strings
+            if value.lower() in ("true", "yes", "1"):
+                var_dict[key] = True
+            elif value.lower() in ("false", "no", "0"):
+                var_dict[key] = False
+            else:
+                var_dict[key] = value
+
+    # Collect variables (interactive or non-interactive)
+    variables = collect_variables(blueprint, var_dict, non_interactive)
     if variables is None:
         raise typer.Exit(1)
 
