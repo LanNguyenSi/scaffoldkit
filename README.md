@@ -47,7 +47,60 @@ make install-docker   # same as ./install.sh --docker
 make dev              # create .venv with dev dependencies
 ```
 
-### Option D: Manual (if you already have Python 3.11+)
+### Option D: pipx (isolated installation)
+
+```bash
+# Install pipx if not already installed
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
+
+# Install scaffoldkit
+git clone <repo-url> scaffoldkit
+cd scaffoldkit
+pipx install .
+
+# Now available globally
+scaffoldkit --help
+```
+
+**Benefits:**
+- ✅ Isolated from system Python
+- ✅ No virtualenv activation needed
+- ✅ Global command available
+- ✅ Easy to uninstall: `pipx uninstall scaffoldkit`
+
+### Option E: venv (development setup)
+
+```bash
+# Clone repository
+git clone <repo-url> scaffoldkit
+cd scaffoldkit
+
+# Create virtual environment
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install with dev dependencies
+pip install -e ".[dev]"
+
+# Run scaffoldkit
+scaffoldkit --help
+```
+
+**Use when:**
+- Contributing to scaffoldkit
+- Need dev dependencies (ruff, mypy, pytest)
+- Want editable installation
+
+**Note:** If you get "externally-managed-environment" error on Debian/Ubuntu:
+```bash
+# Use venv instead of system pip
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+```
+
+### Option F: Manual (if you already have Python 3.11+)
 
 ```bash
 pip install .
