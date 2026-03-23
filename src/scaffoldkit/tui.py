@@ -43,9 +43,7 @@ def select_blueprint(blueprints_dir: Path | None = None) -> tuple[Blueprint, Pat
 
 
 def collect_variables(
-    blueprint: Blueprint,
-    provided_vars: dict[str, Any] | None = None,
-    non_interactive: bool = False
+    blueprint: Blueprint, provided_vars: dict[str, Any] | None = None, non_interactive: bool = False
 ) -> dict[str, Any] | None:
     """Prompt the user for each blueprint variable. Returns dict or None on cancel.
 
