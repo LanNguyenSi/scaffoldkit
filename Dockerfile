@@ -17,7 +17,7 @@ COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/pytho
 COPY --from=builder /usr/local/bin/scaffoldkit /usr/local/bin/scaffoldkit
 
 # Blueprints at a well-known location, referenced via env var
-COPY blueprints/ /opt/scaffoldkit/blueprints/
+COPY src/scaffoldkit/blueprints/ /opt/scaffoldkit/blueprints/
 ENV SCAFFOLDKIT_BLUEPRINTS_DIR=/opt/scaffoldkit/blueprints
 
 WORKDIR /workspace
