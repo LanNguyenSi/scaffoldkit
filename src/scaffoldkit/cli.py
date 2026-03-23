@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
 from rich.console import Console
@@ -70,7 +70,7 @@ def new(
         blueprint, bp_path = result
 
     # Parse --var flags into dict
-    var_dict = {}
+    var_dict: dict[str, Any] = {}
     if var:
         for v in var:
             if "=" not in v:
@@ -84,7 +84,7 @@ def new(
                 var_dict[key] = False
             else:
                 var_dict[key] = value
-    
+
     # Collect variables (interactive or non-interactive)
     variables = collect_variables(blueprint, var_dict, non_interactive)
     if variables is None:

@@ -43,12 +43,12 @@ def select_blueprint(blueprints_dir: Path | None = None) -> tuple[Blueprint, Pat
 
 
 def collect_variables(
-    blueprint: Blueprint, 
+    blueprint: Blueprint,
     provided_vars: dict[str, Any] | None = None,
     non_interactive: bool = False
 ) -> dict[str, Any] | None:
     """Prompt the user for each blueprint variable. Returns dict or None on cancel.
-    
+
     Args:
         blueprint: Blueprint with variable definitions
         provided_vars: Variables provided via --var flags
@@ -68,7 +68,7 @@ def collect_variables(
         if var.name in provided:
             variables[var.name] = provided[var.name]
             continue
-        
+
         # In non-interactive mode, use default or fail for required vars
         if non_interactive:
             if var.default is not None:
@@ -77,7 +77,7 @@ def collect_variables(
                 console.print(f"[red]Error: Required variable '{var.name}' not provided[/red]")
                 return None
             continue
-        
+
         # Interactive prompt
         value = _prompt_variable(var)
         if value is None and var.required:
