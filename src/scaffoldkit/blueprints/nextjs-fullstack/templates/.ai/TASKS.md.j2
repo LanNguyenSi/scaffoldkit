@@ -1,76 +1,78 @@
-# .ai/TASKS.md — Work Packages
+# Tasks
 
-> Self-contained tasks for agents. Each task can be implemented independently.
+## Current Sprint
 
-## Priority Levels
-- **P0** — Must have for production launch
-- **P1** — Important for user experience
-- **P2** — Nice to have, future work
+| ID | Task | Priority | Status | Assignee |
+|----|------|----------|--------|----------|
+| T-001 | Initial data model | high | open | unassigned |
+| T-002 | Public pages (listing + detail) | high | open | unassigned |
+| T-003 | Admin panel (login, dashboard, CRUD) | high | open | unassigned |
+| T-004 | API endpoints with auth | high | open | unassigned |
+{% if use_docker %}| T-005 | Docker deployment | high | open | unassigned |
+{% endif %}
 
-## Template
+## Task Details
 
-```markdown
-### Task XXX: [Title]
-**Priority:** P0/P1/P2
-**Estimate:** Xh
-**Status:** Open / In Progress / Done
-
-**Problem:** What's missing or broken.
-**Solution:** What to build.
-**Files:** Which files to create/modify.
-**Notes:** Implementation hints, patterns to follow.
-```
-
-## Tasks
-
-### Task 001: Initial Data Model
-**Priority:** P0
-**Estimate:** 2h
-**Status:** Open
-
+### T-001: Initial Data Model
+**Priority:** high
 **Problem:** No database schema defined yet.
 **Solution:** Design Prisma schema based on domain requirements.
 **Files:** `prisma/schema.prisma`
-**Notes:** Include all relationships, enums, indexes. Run `npx prisma migrate dev --name init`.
+**Acceptance Criteria:**
+- [ ] All entities with relationships defined
+- [ ] Indexes on frequently queried fields
+- [ ] Migration runs cleanly: `npx prisma migrate dev --name init`
 
-### Task 002: Public Pages
-**Priority:** P0
-**Estimate:** 4h
-**Status:** Open
-
+### T-002: Public Pages
+**Priority:** high
 **Problem:** No public-facing UI.
-**Solution:** Build listing + detail pages.
+**Solution:** Build listing + detail pages as Server Components.
 **Files:** `app/(public)/`, `components/public/`
-**Notes:** Server Components, responsive, {{ language }} UI text.
+**Acceptance Criteria:**
+- [ ] Responsive layout (mobile-first)
+- [ ] {{ language | capitalize }} UI text
+- [ ] Server Components with `force-dynamic`
 
-### Task 003: Admin Panel
-**Priority:** P0
-**Estimate:** 4h
-**Status:** Open
-
+### T-003: Admin Panel
+**Priority:** high
 **Problem:** No admin interface.
 **Solution:** Build login, dashboard, CRUD pages.
 **Files:** `app/admin/`, `components/admin/`, `lib/auth.ts`
-**Notes:** JWT auth, protected routes, mobile-responsive.
+**Acceptance Criteria:**
+- [ ] JWT auth with protected routes
+- [ ] Dashboard with overview stats
+- [ ] CRUD operations for all entities
 
-### Task 004: API Endpoints
-**Priority:** P0
-**Estimate:** 3h
-**Status:** Open
-
+### T-004: API Endpoints
+**Priority:** high
 **Problem:** No REST API.
-**Solution:** Build CRUD endpoints with auth.
+**Solution:** Build CRUD endpoints with auth middleware.
 **Files:** `app/api/`
-**Notes:** Use transactions for related mutations. Return proper HTTP status codes.
+**Acceptance Criteria:**
+- [ ] Transactions for related mutations
+- [ ] Proper HTTP status codes
+- [ ] Auth required for write operations
 {% if use_docker %}
 
-### Task 005: Docker Deployment
-**Priority:** P0
-**Estimate:** 2h
-**Status:** Open
-
+### T-005: Docker Deployment
+**Priority:** high
 **Problem:** No production deployment config.
-**Solution:** Multi-stage Dockerfile + docker-compose.traefik.yml
+**Solution:** Multi-stage Dockerfile + Traefik config.
 **Files:** `Dockerfile`, `docker-compose.traefik.yml`
-**Notes:** Remember `prisma generate` in both deps AND builder stages.
+**Acceptance Criteria:**
+- [ ] `prisma generate` in both deps AND builder stages
+- [ ] Health check endpoint
+- [ ] Traefik labels for SSL
 {% endif %}
+
+## Backlog
+
+- Integration tests for critical flows
+- Error handling and validation improvements
+- Performance optimization (caching, lazy loading)
+
+## Rules
+
+- Each task must have clear acceptance criteria before work begins.
+- Agents should update status when starting and completing tasks.
+- Blocked tasks must note what they are waiting for.
