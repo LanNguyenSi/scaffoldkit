@@ -17,7 +17,7 @@
 ### Tier 2 — Assisted (human review required)
 - Create commits and pull requests
 - Modify database schema or migrations
-- Change auth or security code
+- Change auth or security middleware
 - Update `.ai/` context files
 
 ### Tier 3 — Prohibited
@@ -38,17 +38,16 @@
 ## Code Standards
 
 - TypeScript strict mode, no `any` types
-- Database mutations in transactions when modifying related data
-- `force-dynamic` export on all pages with DB queries
-- {{ language | capitalize }} UI strings, English code and comments
+- Express routes in `src/routes/`, business logic in `src/services/`
+- Database mutations in Prisma transactions when modifying related data
+- Input validation with Zod schemas in `src/models/`
 - Conventional commits: `feat:`, `fix:`, `docs:`, `chore:`
-- PR attribution: include `Co-Authored-By` for agent contributions
 
 ## What Agents Must Not Do
 
 - Deploy to production without human sign-off
-- Modify CI/CD or Docker config without explicit task assignment
-- Change auth logic (lib/auth.ts) without review
+- Modify Docker or CI/CD config without explicit task
+- Change auth middleware without review
 - Skip linting or test runs
 - Merge their own PRs
 
@@ -56,10 +55,12 @@
 
 | Directory | Purpose |
 |-----------|---------|
-| `app/(public)/` | Public-facing pages |
-| `app/admin/` | Admin panel pages |
-| `app/api/` | API routes |
-| `components/` | UI components (public/, admin/, shared/) |
-| `lib/` | Utilities, DB client, auth |
+| `src/routes/` | Express route handlers |
+| `src/services/` | Business logic (DB queries, computations) |
+| `src/middleware/` | Auth, validation, error handling |
+| `src/models/` | Zod schemas and type definitions |
+| `src/types/` | Shared TypeScript interfaces |
+| `src/utils/` | Helper functions |
 | `prisma/` | Database schema + migrations |
+| `tests/` | Test files |
 | `.ai/` | Agent context files (this folder) |

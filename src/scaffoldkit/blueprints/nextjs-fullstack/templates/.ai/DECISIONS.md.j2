@@ -1,58 +1,44 @@
-# .ai/DECISIONS.md — Architecture Decision Log
+# Decisions
 
-> Document why things are built the way they are.
+Architecture and engineering decisions that shape how agents should work in this project.
 
-## Format
+## Active Decisions
 
-```markdown
-### DXXX: [Decision Title]
-**Date:** YYYY-MM-DD
-**Status:** Accepted / Superseded / Deprecated
-**Context:** Why was this decision needed?
-**Decision:** What was decided?
-**Consequences:** What are the trade-offs?
-```
+### D-001: Next.js App Router with Server Components
+- **Date:** {{ "now" | default("2026-01-01") }}
+- **Status:** accepted
+- **Context:** Need a full-stack framework with good DX, SSR, and API routes.
+- **Decision:** Use Next.js App Router with Server Components as default.
+- **Consequences:** Pages with DB queries need `force-dynamic`. Client interactivity requires `'use client'`.
+- **Agent impact:** Default to Server Components. Only add `'use client'` when state or interactivity is needed.
 
-## Decisions
+### D-002: Prisma ORM with {{ db_provider | capitalize }}
+- **Date:** {{ "now" | default("2026-01-01") }}
+- **Status:** accepted
+- **Context:** Need type-safe database access with migration support.
+- **Decision:** Use Prisma ORM with {{ db_provider }}.
+- **Consequences:** Schema-first approach. Generated client needs regeneration after changes.
+- **Agent impact:** Always run `npx prisma generate` after schema changes. Use transactions for related mutations.
 
-### D001: Next.js App Router with Server Components
-**Date:** {{ "now" | default("2026-01-01") }}
-**Status:** Accepted
-**Context:** Need a full-stack framework with good DX, SSR, and API routes.
-**Decision:** Use Next.js App Router with Server Components as default.
-**Consequences:** 
-- Pages with DB queries need `export const dynamic = "force-dynamic"`
-- Client interactivity requires explicit `'use client'` directive
-- Simpler deployment (single Node.js process)
-
-### D002: Prisma ORM with {{ db_provider | capitalize }}
-**Date:** {{ "now" | default("2026-01-01") }}
-**Status:** Accepted
-**Context:** Need type-safe database access with migration support.
-**Decision:** Use Prisma ORM with {{ db_provider }}.
-**Consequences:**
-- Schema-first approach (edit `prisma/schema.prisma`, then migrate)
-- Generated client needs regeneration after schema changes
-- Docker builds need `prisma generate` in builder stage
-
-### D003: Tailwind CSS 4
-**Date:** {{ "now" | default("2026-01-01") }}
-**Status:** Accepted
-**Context:** Need utility-first CSS with good DX.
-**Decision:** Use Tailwind CSS 4 with `@import "tailwindcss"` syntax.
-**Consequences:**
-- Do NOT use old `@tailwind base/components/utilities` syntax
-- `@tailwindcss/typography` for prose content
-- Responsive: mobile-first with `sm:`, `md:`, `lg:` breakpoints
+### D-003: Tailwind CSS 4
+- **Date:** {{ "now" | default("2026-01-01") }}
+- **Status:** accepted
+- **Context:** Need utility-first CSS with good DX.
+- **Decision:** Use Tailwind CSS 4 with `@import "tailwindcss"` syntax.
+- **Consequences:** Do NOT use old `@tailwind base/components/utilities` syntax.
+- **Agent impact:** Use utility classes inline. Mobile-first with `sm:`, `md:`, `lg:` breakpoints.
 {% if use_docker %}
 
-### D004: Docker + Traefik Deployment
-**Date:** {{ "now" | default("2026-01-01") }}
-**Status:** Accepted
-**Context:** Need production deployment with SSL.
-**Decision:** Multi-stage Dockerfile + Traefik reverse proxy.
-**Consequences:**
-- Traefik handles SSL (Let's Encrypt) and routing via Docker labels
-- No nginx needed for the app itself
-- Easy to add new services (just add Traefik labels)
+### D-004: Docker + Traefik Deployment
+- **Date:** {{ "now" | default("2026-01-01") }}
+- **Status:** accepted
+- **Context:** Need production deployment with SSL.
+- **Decision:** Multi-stage Dockerfile + Traefik reverse proxy.
+- **Consequences:** Traefik handles SSL via Let's Encrypt and Docker labels.
+- **Agent impact:** Remember `prisma generate` in both deps AND builder stages of Dockerfile.
 {% endif %}
+
+## Superseded
+
+| ID | Title | Superseded By | Date |
+|----|-------|---------------|------|
