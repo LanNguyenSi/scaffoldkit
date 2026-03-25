@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import json
 import re
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -73,7 +75,9 @@ def default_target_name(export_data: PlanforgeExport) -> str:
     return slugify(export_data.projectName) or "generated-project"
 
 
-def build_variables_from_planforge(export_data: PlanforgeExport, blueprint: Blueprint) -> dict[str, Any]:
+def build_variables_from_planforge(
+    export_data: PlanforgeExport, blueprint: Blueprint
+) -> dict[str, Any]:
     """Map a planforge export to scaffoldkit blueprint variables."""
     variables = default_variables_for_blueprint(blueprint)
     available_names = {variable.name for variable in blueprint.variables}
@@ -82,7 +86,9 @@ def build_variables_from_planforge(export_data: PlanforgeExport, blueprint: Blue
     if "display_name" in available_names:
         variables["display_name"] = export_data.projectName
     if "description" in available_names:
-        variables["description"] = export_data.summary or variables.get("description") or export_data.projectName
+        variables["description"] = (
+            export_data.summary or variables.get("description") or export_data.projectName
+        )
     if "ai_context" in available_names:
         variables["ai_context"] = True
 
@@ -102,15 +108,21 @@ def build_variables_from_planforge(export_data: PlanforgeExport, blueprint: Blue
     ).lower()
 
     if "use_docker" in available_names and "use_docker" not in variables:
-        variables["use_docker"] = bool(re.search(r"docker|container|kubernetes|compose", combined_text))
+        variables["use_docker"] = bool(
+            re.search(r"docker|container|kubernetes|compose", combined_text)
+        )
     if "use_analytics" in available_names and "use_analytics" not in variables:
         variables["use_analytics"] = bool(re.search(r"analytics|dashboard|report", combined_text))
     if "use_email" in available_names and "use_email" not in variables:
         variables["use_email"] = bool(re.search(r"email|notification|invite", combined_text))
     if "use_queue" in available_names and "use_queue" not in variables:
-        variables["use_queue"] = bool(re.search(r"background jobs|queue|workflow|notification", combined_text))
+        variables["use_queue"] = bool(
+            re.search(r"background jobs|queue|workflow|notification", combined_text)
+        )
     if "use_auth" in available_names and "use_auth" not in variables:
-        variables["use_auth"] = not bool(re.search(r"public-only|anonymous|no auth", combined_text))
+        variables["use_auth"] = not bool(
+            re.search(r"public-only|anonymous|no auth", combined_text)
+        )
     if "use_openapi" in available_names and "use_openapi" not in variables:
         variables["use_openapi"] = True
 
@@ -119,7 +131,8 @@ def build_variables_from_planforge(export_data: PlanforgeExport, blueprint: Blue
     if "database" in available_names and "database" not in variables:
         variables["database"] = infer_database_choice(export_data, "database")
     if "framework" in available_names and "framework" not in variables:
-        variables["framework"] = "express" if "typescript service stack" in export_data.stack.hint.lower() else "fastapi"
+        ts_hint = "typescript service stack" in export_data.stack.hint.lower()
+        variables["framework"] = "express" if ts_hint else "fastapi"
     if "auth_strategy" in available_names and "auth_strategy" not in variables:
         variables["auth_strategy"] = infer_auth_strategy(export_data, blueprint.name)
 
@@ -209,7 +222,7 @@ def infer_auth_strategy(export_data: PlanforgeExport, blueprint_name: str) -> st
         return "api-key"
     if "oauth2" in combined_text and blueprint_name == "rest-api":
         return "oauth2"
-    if ("sso" in combined_text or "next-auth" in combined_text) and blueprint_name == "nextjs-fullstack":
+    if ("sso" in combined_text or "next-auth" in combined_text) and blueprint_name == "nextjs-fullstack":  # noqa: E501
         return "next-auth"
     if "public-only" in combined_text or "anonymous" in combined_text:
         return "none"

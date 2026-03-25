@@ -181,16 +181,20 @@ def from_planforge(
     bp_path = bp_dir / export_data.blueprint
     if not (bp_path / "blueprint.yaml").exists():
         console.print(
-            f"[red]Blueprint '{export_data.blueprint}' from planforge input not found in {bp_dir}[/red]"
+            f"[red]Blueprint '{export_data.blueprint}' from planforge input"
+            f" not found in {bp_dir}[/red]"
         )
         if export_data.blueprintCandidates:
-            console.print(f"[yellow]Planforge candidates: {', '.join(export_data.blueprintCandidates)}[/yellow]")
+            candidates = ", ".join(export_data.blueprintCandidates)
+            console.print(f"[yellow]Planforge candidates: {candidates}[/yellow]")
         raise typer.Exit(1)
 
     blueprint = load_blueprint(bp_path)
     variables = build_variables_from_planforge(export_data, blueprint)
 
-    resolved_target = target.resolve() if target else (Path.cwd() / default_target_name(export_data)).resolve()
+    resolved_target = (
+        target.resolve() if target else (Path.cwd() / default_target_name(export_data)).resolve()
+    )
 
     context = GenerationContext(
         blueprint=blueprint,
