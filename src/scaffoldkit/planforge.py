@@ -120,9 +120,7 @@ def build_variables_from_planforge(
             re.search(r"background jobs|queue|workflow|notification", combined_text)
         )
     if "use_auth" in available_names and "use_auth" not in variables:
-        variables["use_auth"] = not bool(
-            re.search(r"public-only|anonymous|no auth", combined_text)
-        )
+        variables["use_auth"] = not bool(re.search(r"public-only|anonymous|no auth", combined_text))
     if "use_openapi" in available_names and "use_openapi" not in variables:
         variables["use_openapi"] = True
 
@@ -222,7 +220,9 @@ def infer_auth_strategy(export_data: PlanforgeExport, blueprint_name: str) -> st
         return "api-key"
     if "oauth2" in combined_text and blueprint_name == "rest-api":
         return "oauth2"
-    if ("sso" in combined_text or "next-auth" in combined_text) and blueprint_name == "nextjs-fullstack":  # noqa: E501
+    if (
+        "sso" in combined_text or "next-auth" in combined_text
+    ) and blueprint_name == "nextjs-fullstack":  # noqa: E501
         return "next-auth"
     if "public-only" in combined_text or "anonymous" in combined_text:
         return "none"
