@@ -7,6 +7,7 @@ import pytest
 from scaffoldkit.blueprint_loader import load_blueprint
 from scaffoldkit.generator import generate
 from scaffoldkit.models import GenerationContext
+from scaffoldkit.planforge import PlanforgeExport, build_variables_from_planforge
 
 BLUEPRINTS_DIR = Path(__file__).resolve().parent.parent / "src" / "scaffoldkit" / "blueprints"
 
@@ -318,3 +319,33 @@ class TestSymfonyNextjsFullstack:
         for f in output.rglob("*"):
             if f.is_file():
                 assert f.stat().st_size > 0, f"Empty: {f.relative_to(output)}"
+
+
+class TestPlanforgeImportHints:
+    def test_express_api_respects_queue_hints_from_planforge(self, tmp_path: Path):
+        export_data = PlanforgeExport.model_validate(
+            {
+                "projectName": "Worker API",
+                "summary": "Backend worker with queued jobs.",
+                "blueprint": "express-api",
+                "features": ["workflow queue processing"],
+                "constraints": ["must run in Docker"],
+                "stack": {"hint": "TypeScript service stack"},
+                "suggestedVariables": {
+                    "use_queue": True,
+                    "use_docker": True,
+                    "db_provider": "sqlite",
+                    "auth_strategy": "jwt",
+                },
+            }
+        )
+        bp_path = BLUEPRINTS_DIR / "express-api"
+        blueprint = load_blueprint(bp_path)
+        variables = build_variables_from_planforge(export_data, blueprint)
+
+        output = _generate(tmp_path, "express-api", variables)
+        readme = (output / "README.md").read_text()
+
+        assert "BullMQ + Redis" in readme
+        assert "Docker + docker-compose" in readme
+        assert "Sqlite via Prisma ORM" in readme
