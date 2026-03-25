@@ -132,6 +132,16 @@ This launches the interactive TUI:
 scaffoldkit new saas-dashboard --target ./my-project
 ```
 
+### From agent-planforge
+
+If you already have a `scaffoldkit-input.json` export from `agent-planforge`, generate directly from it:
+
+```bash
+scaffoldkit from-planforge ./scaffoldkit-input.json --target ./my-project
+```
+
+This uses the recommended blueprint from the export and applies planforge-provided variable hints before generation.
+
 ### Options
 
 ```bash
