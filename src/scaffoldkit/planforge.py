@@ -172,13 +172,9 @@ def optional_section_warnings(export_data: PlanforgeExport) -> list[str]:
     if not export_data.summary:
         warnings.append("summary missing; using blueprint defaults for description where needed")
     if not export_data.features:
-        warnings.append(
-            "features missing; feature-specific hints will stay at blueprint defaults"
-        )
+        warnings.append("features missing; feature-specific hints will stay at blueprint defaults")
     if not export_data.constraints:
-        warnings.append(
-            "constraints missing; deployment and database hints may stay at defaults"
-        )
+        warnings.append("constraints missing; deployment and database hints may stay at defaults")
     if not export_data.architecture.shape:
         warnings.append(
             "architecture.shape missing; architecture-specific hints may stay at defaults"

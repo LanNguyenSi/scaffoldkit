@@ -184,9 +184,7 @@ def from_planforge(
     bp_dir = blueprints_dir or get_blueprints_dir()
     bp_path, fallback_from = resolve_blueprint_path(bp_dir, export_data)
     if bp_path is None:
-        console.print(
-            f"[red]No compatible blueprint from planforge input found in {bp_dir}[/red]"
-        )
+        console.print(f"[red]No compatible blueprint from planforge input found in {bp_dir}[/red]")
         console.print(
             "[yellow]Imported candidates: "
             f"{', '.join(blueprint_candidates(export_data)) or '(none)'}[/yellow]"
@@ -219,9 +217,7 @@ def from_planforge(
     variables = build_variables_from_planforge(export_data, blueprint)
 
     resolved_target = (
-        target.resolve()
-        if target
-        else (Path.cwd() / default_target_name(export_data)).resolve()
+        target.resolve() if target else (Path.cwd() / default_target_name(export_data)).resolve()
     )
 
     context = GenerationContext(
