@@ -1,5 +1,7 @@
 """Tests for CLI commands."""
 
+import json
+
 from typer.testing import CliRunner
 
 from scaffoldkit.cli import app
@@ -30,3 +32,60 @@ class TestNewCommand:
         result = runner.invoke(app, ["new", "--help"])
         assert result.exit_code == 0
         assert "blueprint" in result.output.lower()
+
+
+class TestFromPlanforgeCommand:
+    def test_generates_project_from_planforge_export(self, tmp_path):
+        export_path = tmp_path / "scaffoldkit-input.json"
+        target = tmp_path / "generated-app"
+        export_path.write_text(
+            json.dumps(
+                {
+                    "version": "1.1",
+                    "exportedBy": "agent-planforge",
+                    "projectName": "Ops Console",
+                    "summary": "Internal operations dashboard with audit-aware workflows.",
+                    "blueprint": "nextjs-fullstack",
+                    "blueprintCandidates": ["nextjs-fullstack", "saas-dashboard"],
+                    "features": ["analytics dashboard", "user authentication"],
+                    "constraints": ["must be dockerized", "prefer TypeScript"],
+                    "architecture": {"shape": "modular monolith"},
+                    "stack": {"hint": "TypeScript web application", "dataStore": "relational"},
+                    "suggestedVariables": {
+                        "db_provider": "sqlite",
+                        "use_docker": True,
+                        "use_analytics": True,
+                        "auth_strategy": "jwt",
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        result = runner.invoke(
+            app,
+            ["from-planforge", str(export_path), "--target", str(target), "--no-install"],
+        )
+
+        assert result.exit_code == 0
+        assert (target / "README.md").exists()
+        assert (target / "package.json").exists()
+        assert (target / ".ai" / "AGENTS.md").exists()
+
+    def test_invalid_blueprint_in_planforge_export_fails_cleanly(self, tmp_path):
+        export_path = tmp_path / "scaffoldkit-input.json"
+        export_path.write_text(
+            json.dumps(
+                {
+                    "projectName": "Broken Export",
+                    "summary": "Invalid blueprint reference.",
+                    "blueprint": "missing-blueprint",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        result = runner.invoke(app, ["from-planforge", str(export_path), "--no-install"])
+
+        assert result.exit_code == 1
+        assert "missing-blueprint" in result.output
