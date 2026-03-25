@@ -222,7 +222,7 @@ def infer_auth_strategy(export_data: PlanforgeExport, blueprint_name: str) -> st
         return "oauth2"
     if (
         "sso" in combined_text or "next-auth" in combined_text
-    ) and blueprint_name == "nextjs-fullstack":  # noqa: E501
+    ) and blueprint_name == "nextjs-fullstack":
         return "next-auth"
     if "public-only" in combined_text or "anonymous" in combined_text:
         return "none"
