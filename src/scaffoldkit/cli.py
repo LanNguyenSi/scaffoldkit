@@ -12,7 +12,11 @@ from rich.console import Console
 from scaffoldkit.blueprint_loader import discover_blueprints, get_blueprints_dir, load_blueprint
 from scaffoldkit.generator import generate
 from scaffoldkit.models import GenerationContext
-from scaffoldkit.planforge import build_variables_from_planforge, default_target_name, load_planforge_export
+from scaffoldkit.planforge import (
+    build_variables_from_planforge,
+    default_target_name,
+    load_planforge_export,
+)
 from scaffoldkit.scaffold_blueprint import create_blueprint
 from scaffoldkit.tui import (
     collect_variables,

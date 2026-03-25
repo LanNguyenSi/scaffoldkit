@@ -116,6 +116,8 @@ templates:
   - source: .husky-pre-commit.j2
     target: .husky-pre-commit
 
+  - source: package.json.j2
+    target: package.json
   - source: lint-staged.config.js.j2
     target: lint-staged.config.js
 
