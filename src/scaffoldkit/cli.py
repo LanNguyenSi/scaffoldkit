@@ -13,9 +13,13 @@ from scaffoldkit.blueprint_loader import discover_blueprints, get_blueprints_dir
 from scaffoldkit.generator import generate
 from scaffoldkit.models import GenerationContext
 from scaffoldkit.planforge import (
+    blueprint_candidates,
     build_variables_from_planforge,
     default_target_name,
+    ignored_suggested_variables,
     load_planforge_export,
+    optional_section_warnings,
+    resolve_blueprint_path,
 )
 from scaffoldkit.scaffold_blueprint import create_blueprint
 from scaffoldkit.tui import (
@@ -178,18 +182,38 @@ def from_planforge(
         raise typer.Exit(1) from error
 
     bp_dir = blueprints_dir or get_blueprints_dir()
-    bp_path = bp_dir / export_data.blueprint
-    if not (bp_path / "blueprint.yaml").exists():
+    bp_path, fallback_from = resolve_blueprint_path(bp_dir, export_data)
+    if bp_path is None:
+        console.print(f"[red]No compatible blueprint from planforge input found in {bp_dir}[/red]")
         console.print(
-            f"[red]Blueprint '{export_data.blueprint}' from planforge input"
-            f" not found in {bp_dir}[/red]"
+            "[yellow]Imported candidates: "
+            f"{', '.join(blueprint_candidates(export_data)) or '(none)'}[/yellow]"
         )
-        if export_data.blueprintCandidates:
-            candidates = ", ".join(export_data.blueprintCandidates)
-            console.print(f"[yellow]Planforge candidates: {candidates}[/yellow]")
+        if export_data.blueprintReason:
+            console.print(f"[yellow]Planforge reason: {export_data.blueprintReason}[/yellow]")
+        available_names = [name for name, _ in discover_blueprints(bp_dir)]
+        console.print(
+            f"[yellow]Local blueprints: {', '.join(available_names) or '(none found)'}[/yellow]"
+        )
         raise typer.Exit(1)
 
     blueprint = load_blueprint(bp_path)
+    if fallback_from:
+        console.print(
+            f"[yellow]Primary blueprint '{fallback_from}' unavailable; using "
+            f"fallback '{blueprint.name}' instead.[/yellow]"
+        )
+
+    ignored_variables = ignored_suggested_variables(export_data, blueprint)
+    if ignored_variables:
+        console.print(
+            "[yellow]Ignoring unsupported suggested variables for this blueprint: "
+            f"{', '.join(ignored_variables)}[/yellow]"
+        )
+
+    for warning in optional_section_warnings(export_data):
+        console.print(f"[yellow]Planforge input warning: {warning}[/yellow]")
+
     variables = build_variables_from_planforge(export_data, blueprint)
 
     resolved_target = (

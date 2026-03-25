@@ -137,6 +137,51 @@ def build_variables_from_planforge(
     return normalize_variables_for_blueprint(blueprint, variables)
 
 
+def resolve_blueprint_path(
+    blueprints_dir: Path, export_data: PlanforgeExport
+) -> tuple[Path | None, str | None]:
+    """Resolve the first available blueprint from the preferred and fallback candidates."""
+    primary = export_data.blueprint
+    for candidate in blueprint_candidates(export_data):
+        candidate_path = blueprints_dir / candidate
+        if (candidate_path / "blueprint.yaml").exists():
+            fallback_from = primary if candidate != primary else None
+            return candidate_path, fallback_from
+    return None, None
+
+
+def blueprint_candidates(export_data: PlanforgeExport) -> list[str]:
+    """Return the ordered list of preferred blueprint candidates without duplicates."""
+    ordered: list[str] = []
+    for candidate in [export_data.blueprint, *export_data.blueprintCandidates]:
+        if candidate and candidate not in ordered:
+            ordered.append(candidate)
+    return ordered
+
+
+def ignored_suggested_variables(export_data: PlanforgeExport, blueprint: Blueprint) -> list[str]:
+    """List suggested variable names that do not exist on the selected blueprint."""
+    available_names = {variable.name for variable in blueprint.variables}
+    ignored = [name for name in export_data.suggestedVariables if name not in available_names]
+    return sorted(ignored)
+
+
+def optional_section_warnings(export_data: PlanforgeExport) -> list[str]:
+    """Describe optional planforge sections that are missing or empty."""
+    warnings: list[str] = []
+    if not export_data.summary:
+        warnings.append("summary missing; using blueprint defaults for description where needed")
+    if not export_data.features:
+        warnings.append("features missing; feature-specific hints will stay at blueprint defaults")
+    if not export_data.constraints:
+        warnings.append("constraints missing; deployment and database hints may stay at defaults")
+    if not export_data.architecture.shape:
+        warnings.append(
+            "architecture.shape missing; architecture-specific hints may stay at defaults"
+        )
+    return warnings
+
+
 def default_variables_for_blueprint(blueprint: Blueprint) -> dict[str, Any]:
     """Collect declared blueprint defaults into a variable map."""
     values: dict[str, Any] = {}
