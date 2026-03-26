@@ -349,3 +349,29 @@ class TestPlanforgeImportHints:
         assert "BullMQ + Redis" in readme
         assert "Docker + docker-compose" in readme
         assert "Sqlite via Prisma ORM" in readme
+
+    def test_cli_tool_infers_typescript_runtime_hints_from_planforge(self, tmp_path: Path):
+        export_data = PlanforgeExport.model_validate(
+            {
+                "projectName": "agent-memory-sync",
+                "summary": "CLI tool to sync memory files through a git repository.",
+                "blueprint": "cli-tool",
+                "features": [
+                    "push local memory files to remote git repo",
+                    "dry-run mode to preview changes before sync",
+                ],
+                "constraints": [
+                    "TypeScript only",
+                    "no external databases, git is the source of truth",
+                ],
+                "stack": {"hint": "TypeScript CLI tool", "dataStore": "git"},
+            }
+        )
+        bp_path = BLUEPRINTS_DIR / "cli-tool"
+        blueprint = load_blueprint(bp_path)
+        variables = build_variables_from_planforge(export_data, blueprint)
+
+        assert variables["language"] == "typescript"
+        assert variables["cli_framework"] == "commander"
+        assert variables["distribution"] == "binary"
+        assert variables["test_strategy"] == "integration-tests"

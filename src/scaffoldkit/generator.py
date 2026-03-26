@@ -17,6 +17,15 @@ def build_template_context(blueprint: Blueprint, variables: dict[str, Any]) -> d
     ctx["blueprint_name"] = blueprint.name
     ctx["blueprint_display_name"] = blueprint.display_name
     ctx["blueprint_stack"] = blueprint.stack
+    language = str(variables.get("language", "")).lower()
+    config_format = str(variables.get("config_format", "")).lower()
+    ctx["is_python"] = language == "python"
+    ctx["is_go"] = language == "go"
+    ctx["is_rust"] = language == "rust"
+    ctx["is_typescript"] = language == "typescript"
+    ctx["is_json_config"] = config_format == "json"
+    ctx["is_yaml_config"] = config_format == "yaml"
+    ctx["is_toml_config"] = config_format == "toml"
     ctx.update(blueprint.metadata)
     return ctx
 

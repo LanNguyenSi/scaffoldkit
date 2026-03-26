@@ -80,6 +80,7 @@ def build_variables_from_planforge(
 ) -> dict[str, Any]:
     """Map a planforge export to scaffoldkit blueprint variables."""
     variables = default_variables_for_blueprint(blueprint)
+    blueprint_defaults = default_variables_for_blueprint(blueprint)
     available_names = {variable.name for variable in blueprint.variables}
 
     variables["project_name"] = slugify(export_data.projectName) or blueprint.name
@@ -110,6 +111,50 @@ def build_variables_from_planforge(
     if "use_docker" in available_names and "use_docker" not in variables:
         variables["use_docker"] = bool(
             re.search(r"docker|container|kubernetes|compose", combined_text)
+        )
+    if (
+        "language" in available_names
+        and "language" not in export_data.suggestedVariables
+        and variables.get("language") == blueprint_defaults.get("language")
+    ):
+        if re.search(r"typescript", combined_text):
+            variables["language"] = "typescript"
+        elif re.search(r"\bgo\b", combined_text):
+            variables["language"] = "go"
+        elif re.search(r"rust", combined_text):
+            variables["language"] = "rust"
+        else:
+            variables["language"] = "python"
+    if (
+        "cli_framework" in available_names
+        and "cli_framework" not in export_data.suggestedVariables
+        and variables.get("cli_framework") == blueprint_defaults.get("cli_framework")
+    ):
+        language = str(variables.get("language", "")).lower()
+        framework_defaults = {
+            "python": "typer",
+            "go": "cobra",
+            "rust": "clap",
+            "typescript": "commander",
+        }
+        if language in framework_defaults:
+            variables["cli_framework"] = framework_defaults[language]
+    if (
+        "distribution" in available_names
+        and "distribution" not in export_data.suggestedVariables
+        and variables.get("distribution") == blueprint_defaults.get("distribution")
+    ):
+        language = str(variables.get("language", "")).lower()
+        variables["distribution"] = "binary" if language in {"go", "rust", "typescript"} else "pip-package"
+    if (
+        "test_strategy" in available_names
+        and "test_strategy" not in export_data.suggestedVariables
+        and variables.get("test_strategy") == blueprint_defaults.get("test_strategy")
+    ):
+        variables["test_strategy"] = (
+            "integration-tests"
+            if re.search(r"git|sync|filesystem|queue|workflow|remote", combined_text)
+            else "unit-tests"
         )
     if "use_analytics" in available_names and "use_analytics" not in variables:
         variables["use_analytics"] = bool(re.search(r"analytics|dashboard|report", combined_text))
