@@ -163,6 +163,28 @@ class TestCliToolBlueprint:
             if f.is_file():
                 assert f.stat().st_size > 0, f"Empty: {f.relative_to(output)}"
 
+    def test_typescript_cli_includes_runnable_baseline(self, tmp_path: Path):
+        output = _generate(
+            tmp_path,
+            "cli-tool",
+            {
+                **_CLI_TOOL_DEFAULTS,
+                "language": "typescript",
+                "cli_framework": "commander",
+                "distribution": "binary",
+                "config_format": "json",
+                "test_strategy": "integration-tests",
+            },
+        )
+
+        assert (output / "package.json").exists()
+        assert (output / "tsconfig.json").exists()
+        assert (output / "src" / "main.ts").exists()
+        assert (output / "src" / "commands" / "run.ts").exists()
+        assert (output / "src" / "commands" / "config.ts").exists()
+        assert (output / "src" / "config" / "loader.ts").exists()
+        assert (output / "tests" / "run.test.ts").exists()
+
 
 # ---------------------------------------------------------------------------
 # static-site blueprint

@@ -116,6 +116,34 @@ templates:
     target: AI_CONTEXT.md
     condition: ai_context
 
+  - source: package.json.j2
+    target: package.json
+    condition: is_typescript
+
+  - source: tsconfig.json.j2
+    target: tsconfig.json
+    condition: is_typescript
+
+  - source: src/main.ts.j2
+    target: src/main.ts
+    condition: is_typescript
+
+  - source: src/commands/run.ts.j2
+    target: src/commands/run.ts
+    condition: is_typescript
+
+  - source: src/commands/config.ts.j2
+    target: src/commands/config.ts
+    condition: is_typescript
+
+  - source: src/config/loader.ts.j2
+    target: src/config/loader.ts
+    condition: is_typescript
+
+  - source: tests/run.test.ts.j2
+    target: tests/run.test.ts
+    condition: is_typescript
+
 static_files:
   - source: .editorconfig
     target: .editorconfig

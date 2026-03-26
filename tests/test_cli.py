@@ -99,6 +99,44 @@ class TestFromPlanforgeCommand:
         assert "using fallback 'express-api'" in result.output
         assert (target / "README.md").exists()
 
+    def test_generates_runnable_typescript_cli_from_planforge_export(self, tmp_path):
+        export_path = tmp_path / "scaffoldkit-input.json"
+        target = tmp_path / "generated-cli"
+        export_path.write_text(
+            json.dumps(
+                {
+                    "version": "1.1",
+                    "exportedBy": "agent-planforge",
+                    "projectName": "agent-memory-sync",
+                    "summary": "CLI tool to sync memory files through a central git repository.",
+                    "blueprint": "cli-tool",
+                    "blueprintCandidates": ["cli-tool", "express-api"],
+                    "features": [
+                        "push local memory files to remote git repo",
+                        "dry-run mode to preview changes before sync",
+                    ],
+                    "constraints": [
+                        "TypeScript only",
+                        "no external databases, git is the source of truth",
+                    ],
+                    "stack": {"hint": "TypeScript CLI tool", "dataStore": "git"},
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        result = runner.invoke(
+            app,
+            ["from-planforge", str(export_path), "--target", str(target), "--no-install"],
+        )
+
+        assert result.exit_code == 0
+        assert (target / "package.json").exists()
+        assert (target / "tsconfig.json").exists()
+        assert (target / "src" / "main.ts").exists()
+        assert (target / "src" / "commands" / "run.ts").exists()
+        assert (target / "tests" / "run.test.ts").exists()
+
     def test_reports_ignored_suggested_variables_without_failing(self, tmp_path):
         export_path = tmp_path / "scaffoldkit-input.json"
         target = tmp_path / "generated-app"
