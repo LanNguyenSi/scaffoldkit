@@ -1,0 +1,202 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - develop
+      - master
+      - 'release/*'
+      - 'feature/*'
+      - 'hotfix/*'
+  pull_request:
+    branches:
+      - develop
+      - master
+  create:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: {% raw %}${{ github.repository }}{% endraw %}
+  CI_IMAGE_NAME: {% raw %}${{ github.repository }}{% endraw %}-ci
+
+jobs:
+  secret-scan:
+    name: Scan for Secrets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Secret Scan
+        uses: {{ project_name }}/.github/actions/secret-scan
+
+  build-ci-image:
+    name: Build CI Image
+    runs-on: ubuntu-latest
+    needs: secret-scan
+    steps:
+      - name: Build CI image
+        uses: {{ project_name }}/.github/actions/build-ci-image
+        with:
+          image-name: {% raw %}${{ env.CI_IMAGE_NAME }}{% endraw %}
+          dockerfile: build/app/Dockerfile
+          context: .
+
+  lint:
+    name: Static Code Analysis
+    runs-on: ubuntu-latest
+    needs: build-ci-image
+    steps:
+      - name: Run Static Code Analysis
+        uses: {{ project_name }}/.github/actions/make-command
+        with:
+          image-name: {% raw %}${{ env.CI_IMAGE_NAME }}{% endraw %}
+          make-command: lint
+
+  test-unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: build-ci-image
+    steps:
+      - name: Run unit tests
+        uses: {{ project_name }}/.github/actions/make-command
+        with:
+          image-name: {% raw %}${{ env.CI_IMAGE_NAME }}{% endraw %}
+          make-command: test-unit
+
+  test-integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: build-ci-image
+    steps:
+      - name: Run integration tests
+        uses: {{ project_name }}/.github/actions/make-command
+        with:
+          image-name: {% raw %}${{ env.CI_IMAGE_NAME }}{% endraw %}
+          make-command: test-integration
+
+  license-check:
+    name: License Check
+    runs-on: ubuntu-latest
+    needs: build-ci-image
+    steps:
+      - name: Run License Check
+        continue-on-error: true
+        uses: {{ project_name }}/.github/actions/license-check
+        with:
+          image-name: {% raw %}${{ env.CI_IMAGE_NAME }}{% endraw %}
+
+  cve-check:
+    name: CVE Check
+    runs-on: ubuntu-latest
+    needs: build-ci-image
+    steps:
+      - name: Run CVE scan
+        uses: {{ project_name }}/.github/actions/cve-check
+        with:
+          image-name: {% raw %}${{ env.CI_IMAGE_NAME }}{% endraw %}
+
+  build-prod-image:
+    name: Build Prod Image
+    runs-on: ubuntu-latest
+    needs: [lint, test-unit, test-integration, license-check, cve-check]
+    if: github.ref_name == 'develop' || github.ref_name == 'release/*' || github.ref == 'refs/tags/*'
+    steps:
+      - name: Build Prod image
+        uses: {{ project_name }}/.github/actions/build-prod-image
+        with:
+          image-name: {% raw %}${{ env.IMAGE_NAME }}{% endraw %}
+          dockerfile: build/app/Dockerfile
+          context: .
+
+  prod-cve-check:
+    name: CVE Check
+    runs-on: ubuntu-latest
+    needs: build-prod-image
+    steps:
+      - name: Run CVE scan
+        uses: {{ project_name }}/.github/actions/cve-check
+        with:
+          image-name: {% raw %}${{ env.IMAGE_NAME }}{% endraw %}
+
+  sign-image:
+    name: Sign Image
+    runs-on: ubuntu-latest
+    needs: prod-cve-check
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: {% raw %}${{ github.actor }}{% endraw %}
+          password: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
+
+      - name: Set up cosign
+        uses: sigstore/cosign-installer@v4.0.0
+
+      - name: Sign Docker image
+        uses: publicplan-internal/.github/actions/sign-container@feature/add-cosign-action
+        with:
+          image_digest_ref: "ghcr.io/{% raw %}${{ github.repository_owner }}{% endraw %}/{% raw %}${{ env.IMAGE_NAME }}{% endraw %}:{% raw %}${{ github.sha }}{% endraw %}"
+          cosign_private_key: {% raw %}${{ secrets.COSIGN_PRIVATE_KEY }}{% endraw %}
+          cosign_password: {% raw %}${{ secrets.COSIGN_PASSWORD }}{% endraw %}
+
+  tag-image:
+    name: Tag Image
+    runs-on: ubuntu-latest
+    needs: sign-image
+    if: github.ref == 'refs/tags/*'
+    steps:
+      - name: Tag image
+        uses: {{ project_name }}/.github/actions/tag-image
+        with:
+          image-name: {% raw %}${{ env.IMAGE_NAME }}{% endraw %}
+
+  deploy-test:
+    name: Deploy to Test
+    needs: sign-image
+    if: github.ref_name == 'develop'
+    uses: publicplan-internal/.github/.github/workflows/ci-cd.yaml@main
+    with:
+      repository: {% raw %}${{ github.repository }}{% endraw %}
+      ref_name: {% raw %}${{ github.sha }}{% endraw %}
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: read
+
+  deploy-stage:
+    name: Deploy to Stage
+    needs: [sign-image]
+    if: github.ref_name == 'release/*'
+    uses: publicplan-internal/.github/.github/workflows/ci-cd.yaml@main
+    with:
+      repository: {% raw %}${{ github.repository }}{% endraw %}
+      ref_name: {% raw %}${{ github.sha }}{% endraw %}
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: read
+
+  deploy-prod:
+    name: Deploy to Production
+    needs: [tag-image]
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/tags/*'
+    uses: publicplan-internal/.github/.github/workflows/ci-cd.yaml@main
+    with:
+      repository: {% raw %}${{ github.repository }}{% endraw %}
+      ref_name: {% raw %}${{ github.ref_name }}{% endraw %}
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: read
+
+  cleanup-ci-cache:
+    name: Cleanup CI-Cache
+    runs-on: ubuntu-latest
+    needs: [lint, test-unit, test-integration, license-check, cve-check]
+    if: always()
+    steps:
+      - name: Remove artefacts from cache
+        uses: {{ project_name }}/.github/actions/cleanup-cache
+        with:
+          image-name: {% raw %}${{ env.CI_IMAGE_NAME }}{% endraw %}
