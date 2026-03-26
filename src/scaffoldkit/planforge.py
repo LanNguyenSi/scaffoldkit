@@ -145,7 +145,8 @@ def build_variables_from_planforge(
         and variables.get("distribution") == blueprint_defaults.get("distribution")
     ):
         language = str(variables.get("language", "")).lower()
-        variables["distribution"] = "binary" if language in {"go", "rust", "typescript"} else "pip-package"
+        is_compiled = language in {"go", "rust", "typescript"}
+        variables["distribution"] = "binary" if is_compiled else "pip-package"
     if (
         "test_strategy" in available_names
         and "test_strategy" not in export_data.suggestedVariables
