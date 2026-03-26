@@ -1,0 +1,26 @@
+# AI Context: {{ display_name }}
+
+## Intent
+
+This repository is an infrastructure-heavy reference scaffold for a Symfony/PHP service. The generated output mirrors the bundled reference ZIP and is useful as a baseline for Docker, GitHub Actions, quality tooling, and security controls.
+
+## Important Constraints
+
+- The actual application source is expected under `project/`.
+- `docker-compose.yml` mounts `./project` into the PHP-FPM and nginx containers.
+- Several deploy jobs reference external reusable workflows from `publicplan-internal/.github`; treat those as organization-specific integration points.
+- Local GitHub Actions are referenced via `{{ project_name }}/.github/actions/...` and assume the repository name matches `{{ project_name }}`.
+
+## Key Areas
+
+- `.github/actions/`: local composite actions for scanning, build, tagging, and running make targets
+- `.github/workflows/pipeline.yml`: CI/CD orchestration for scans, image builds, tests, signing, and deploy hooks
+- `build/`: Dockerfiles and runtime configuration for PHP-FPM and nginx
+- `tools/composer.json`: dev tooling dependencies for PHPUnit, PHPStan, Psalm, PHPCS, PHP CS Fixer, and PHPMD
+- `sbom/license_policy.json`: license policy seed for compliance automation
+
+## Safe Next Steps
+
+- Add the Symfony application under `project/`.
+- Review every `publicplan-internal/...` reference before relying on the workflow.
+- Adjust `.env` values, container names, domains, and deployment targets for the actual environment.

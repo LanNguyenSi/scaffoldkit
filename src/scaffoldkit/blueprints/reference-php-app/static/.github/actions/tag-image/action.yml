@@ -1,0 +1,15 @@
+name: Tag Image
+description: Sets the image tag
+inputs:
+  image-name:
+    description: Image name
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Run CVE scan
+      shell: bash
+      run: |
+        REGISTRY_IMAGE="ghcr.io/${{ github.repository_owner }}/${{ inputs.image-name }}"
+        docker tag "${REGISTRY_IMAGE}:${{ github.sha }}" "${REGISTRY_IMAGE}:${{ github.ref_name }}"
+        docker push "${REGISTRY_IMAGE}:${{ github.ref_name }}"
