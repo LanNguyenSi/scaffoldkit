@@ -225,6 +225,12 @@ class TestNextjsFrontend:
             if f.is_file():
                 assert f.stat().st_size > 0, f"Empty: {f.relative_to(output)}"
 
+    def test_ai_context_preserves_code_block_line_breaks(self, tmp_path: Path):
+        output = _generate(tmp_path, "nextjs-frontend", _NEXTJS_DEFAULTS)
+        ai_ctx = (output / "AI_CONTEXT.md").read_text()
+        assert '<div style={{ borderRadius: "8px", background: "white" }}>\n```' in ai_ctx
+        assert '<div style={{ borderRadius: "8px", background: "white" }}>```' not in ai_ctx
+
 
 # ---------------------------------------------------------------------------
 # symfony-nextjs (fullstack)
