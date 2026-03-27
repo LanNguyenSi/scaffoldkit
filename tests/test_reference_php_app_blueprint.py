@@ -60,6 +60,17 @@ class TestReferencePhpAppBlueprint:
         pipeline = (output / ".github" / "workflows" / "pipeline.yml").read_text()
         assert "uses: demo-reference-app/.github/actions/secret-scan" in pipeline
         assert "${{ github.repository }}" in pipeline
+        assert (
+            "with:\n"
+            "          image-name: ${{ env.CI_IMAGE_NAME }}\n"
+            "          dockerfile: build/app/Dockerfile\n"
+            "          context: ."
+        ) in pipeline
+        assert "image-name: ${{ env.CI_IMAGE_NAME }}          dockerfile:" not in pipeline
+        assert "#      target_overlay: test" in pipeline
+        assert "#      target_overlay: stage" in pipeline
+        assert "#      target_overlay: prod" in pipeline
+        assert "needs: [ lint, test-unit, test-integration, license-check, cve-check ]" in pipeline
 
     def test_skips_optional_files_when_disabled(self, tmp_path: Path):
         output = _generate(tmp_path, {**_DEFAULTS, "use_ci": False, "ai_context": False})
