@@ -160,6 +160,8 @@ Options:
 scaffoldkit list
 ```
 
+Current notable blueprints include `fastapi-backend`, `django-drf`, `rest-api`, `express-api`, `nextjs-fullstack`, `nextjs-frontend`, `symfony-backend`, `symfony-nextjs`, `springboot-backend`, `static-site`, and `cli-tool`.
+
 ### Docker Usage
 
 ```bash
