@@ -108,15 +108,19 @@ def build_variables_from_planforge(
         ]
     ).lower()
 
-    if "use_docker" in available_names and "use_docker" not in variables:
-        variables["use_docker"] = bool(
-            re.search(r"docker|container|kubernetes|compose", combined_text)
+    def should_infer(name: str) -> bool:
+        return name in available_names and (
+            name not in export_data.suggestedVariables
+            and variables.get(name) == blueprint_defaults.get(name)
         )
-    if (
-        "language" in available_names
-        and "language" not in export_data.suggestedVariables
-        and variables.get("language") == blueprint_defaults.get("language")
-    ):
+
+    has_docker_signal = bool(re.search(r"docker|container|kubernetes|compose", combined_text))
+    has_queue_signal = bool(re.search(r"background jobs|queue|workflow|notification", combined_text))
+    has_public_signal = bool(re.search(r"public-only|anonymous|no auth", combined_text))
+
+    if should_infer("use_docker") and has_docker_signal:
+        variables["use_docker"] = True
+    if should_infer("language"):
         if re.search(r"typescript", combined_text):
             variables["language"] = "typescript"
         elif re.search(r"\bgo\b", combined_text):
@@ -125,11 +129,7 @@ def build_variables_from_planforge(
             variables["language"] = "rust"
         else:
             variables["language"] = "python"
-    if (
-        "cli_framework" in available_names
-        and "cli_framework" not in export_data.suggestedVariables
-        and variables.get("cli_framework") == blueprint_defaults.get("cli_framework")
-    ):
+    if should_infer("cli_framework"):
         language = str(variables.get("language", "")).lower()
         framework_defaults = {
             "python": "typer",
@@ -139,45 +139,71 @@ def build_variables_from_planforge(
         }
         if language in framework_defaults:
             variables["cli_framework"] = framework_defaults[language]
-    if (
-        "distribution" in available_names
-        and "distribution" not in export_data.suggestedVariables
-        and variables.get("distribution") == blueprint_defaults.get("distribution")
-    ):
+    if should_infer("distribution"):
         language = str(variables.get("language", "")).lower()
         is_compiled = language in {"go", "rust", "typescript"}
         variables["distribution"] = "binary" if is_compiled else "pip-package"
-    if (
-        "test_strategy" in available_names
-        and "test_strategy" not in export_data.suggestedVariables
-        and variables.get("test_strategy") == blueprint_defaults.get("test_strategy")
-    ):
+    if should_infer("test_strategy"):
         variables["test_strategy"] = (
             "integration-tests"
             if re.search(r"git|sync|filesystem|queue|workflow|remote", combined_text)
             else "unit-tests"
         )
-    if "use_analytics" in available_names and "use_analytics" not in variables:
-        variables["use_analytics"] = bool(re.search(r"analytics|dashboard|report", combined_text))
-    if "use_email" in available_names and "use_email" not in variables:
-        variables["use_email"] = bool(re.search(r"email|notification|invite", combined_text))
-    if "use_queue" in available_names and "use_queue" not in variables:
-        variables["use_queue"] = bool(
-            re.search(r"background jobs|queue|workflow|notification", combined_text)
-        )
-    if "use_auth" in available_names and "use_auth" not in variables:
-        variables["use_auth"] = not bool(re.search(r"public-only|anonymous|no auth", combined_text))
-    if "use_openapi" in available_names and "use_openapi" not in variables:
+    if should_infer("use_analytics") and re.search(r"analytics|dashboard|report", combined_text):
+        variables["use_analytics"] = True
+    if should_infer("use_email") and re.search(r"email|notification|invite", combined_text):
+        variables["use_email"] = True
+    if should_infer("use_queue") and has_queue_signal:
+        variables["use_queue"] = True
+    if should_infer("use_auth") and has_public_signal:
+        variables["use_auth"] = False
+    if should_infer("use_openapi"):
         variables["use_openapi"] = True
 
-    if "db_provider" in available_names and "db_provider" not in variables:
+    if should_infer("db_provider"):
         variables["db_provider"] = infer_database_choice(export_data, "db_provider")
-    if "database" in available_names and "database" not in variables:
+    if should_infer("database"):
         variables["database"] = infer_database_choice(export_data, "database")
-    if "framework" in available_names and "framework" not in variables:
+    if should_infer("framework"):
         ts_hint = "typescript service stack" in export_data.stack.hint.lower()
         variables["framework"] = "express" if ts_hint else "fastapi"
-    if "auth_strategy" in available_names and "auth_strategy" not in variables:
+    if blueprint.name == "fastapi-backend":
+        if should_infer("db_provider"):
+            variables["db_provider"] = infer_database_choice(export_data, "db_provider")
+        if should_infer("package_manager"):
+            variables["package_manager"] = "uv"
+        if should_infer("api_docs"):
+            variables["api_docs"] = True
+        if should_infer("auth_strategy"):
+            variables["auth_strategy"] = infer_auth_strategy(export_data, blueprint.name)
+        if should_infer("use_background_jobs") and bool(
+            re.search(r"background jobs|queue|workflow|worker", combined_text)
+        ):
+            variables["use_background_jobs"] = True
+        if should_infer("use_redis") and bool(re.search(r"redis|cache|queue", combined_text)):
+            variables["use_redis"] = True
+        if should_infer("test_strategy"):
+            variables["test_strategy"] = "pytest-and-integration"
+    if blueprint.name == "django-drf":
+        if should_infer("database"):
+            variables["database"] = infer_database_choice(export_data, "database")
+        if should_infer("package_manager"):
+            variables["package_manager"] = "uv"
+        if should_infer("use_drf_spectacular"):
+            variables["use_drf_spectacular"] = True
+        if should_infer("auth_strategy"):
+            variables["auth_strategy"] = infer_auth_strategy(export_data, blueprint.name)
+        if should_infer("use_celery") and bool(
+            re.search(r"background jobs|queue|workflow|celery", combined_text)
+        ):
+            variables["use_celery"] = True
+        if should_infer("use_channels") and bool(
+            re.search(r"websocket|real-time|realtime|channels", combined_text)
+        ):
+            variables["use_channels"] = True
+        if should_infer("test_strategy"):
+            variables["test_strategy"] = "pytest-django-and-integration"
+    if should_infer("auth_strategy"):
         variables["auth_strategy"] = infer_auth_strategy(export_data, blueprint.name)
 
     return normalize_variables_for_blueprint(blueprint, variables)
@@ -196,10 +222,42 @@ def resolve_blueprint_path(
     return None, None
 
 
+def inferred_blueprint_candidates(export_data: PlanforgeExport) -> list[str]:
+    """Add local blueprint fallbacks when planforge emits a generic Python API choice."""
+    combined_text = " ".join(
+        [
+            export_data.projectName,
+            export_data.summary,
+            *export_data.features,
+            *export_data.constraints,
+            export_data.architecture.shape,
+            export_data.stack.hint,
+            export_data.stack.dataStore,
+        ]
+    ).lower()
+
+    base_candidates = [export_data.blueprint, *export_data.blueprintCandidates]
+    references_generic_api = any(candidate == "rest-api" for candidate in base_candidates)
+    if not references_generic_api:
+        return []
+
+    inferred: list[str] = []
+    if re.search(r"django|drf|django rest|serializer|viewset|admin", combined_text):
+        inferred.append("django-drf")
+    elif re.search(r"fastapi|pydantic|uvicorn|asgi|python", combined_text):
+        inferred.append("fastapi-backend")
+
+    return inferred
+
+
 def blueprint_candidates(export_data: PlanforgeExport) -> list[str]:
     """Return the ordered list of preferred blueprint candidates without duplicates."""
     ordered: list[str] = []
-    for candidate in [export_data.blueprint, *export_data.blueprintCandidates]:
+    for candidate in [
+        *inferred_blueprint_candidates(export_data),
+        export_data.blueprint,
+        *export_data.blueprintCandidates,
+    ]:
         if candidate and candidate not in ordered:
             ordered.append(candidate)
     return ordered
@@ -307,16 +365,20 @@ def infer_auth_strategy(export_data: PlanforgeExport, blueprint_name: str) -> st
         ]
     ).lower()
 
+    if "public-only" in combined_text or "anonymous" in combined_text:
+        return "none"
     if "api key" in combined_text or "api-key" in combined_text:
+        if blueprint_name == "django-drf":
+            return "token"
         return "api-key"
-    if "oauth2" in combined_text and blueprint_name == "rest-api":
+    if "session" in combined_text and blueprint_name == "django-drf":
+        return "session"
+    if "oauth2" in combined_text:
         return "oauth2"
     if (
         "sso" in combined_text or "next-auth" in combined_text
     ) and blueprint_name == "nextjs-fullstack":
         return "next-auth"
-    if "public-only" in combined_text or "anonymous" in combined_text:
-        return "none"
     return "jwt"
 
 

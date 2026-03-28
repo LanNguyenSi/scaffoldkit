@@ -99,6 +99,62 @@ class TestFromPlanforgeCommand:
         assert "using fallback 'express-api'" in result.output
         assert (target / "README.md").exists()
 
+    def test_prefers_fastapi_backend_for_generic_python_api_exports(self, tmp_path):
+        export_path = tmp_path / "scaffoldkit-input.json"
+        target = tmp_path / "generated-fastapi"
+        export_path.write_text(
+            json.dumps(
+                {
+                    "projectName": "Workflow Service",
+                    "summary": "Python API for asynchronous workflow orchestration.",
+                    "blueprint": "rest-api",
+                    "blueprintCandidates": ["rest-api"],
+                    "features": ["background workflow processing", "redis-backed coordination"],
+                    "constraints": ["docker deployment", "JWT auth"],
+                    "stack": {"hint": "Python application stack", "dataStore": "relational"},
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        result = runner.invoke(
+            app,
+            ["from-planforge", str(export_path), "--target", str(target), "--no-install"],
+        )
+
+        assert result.exit_code == 0
+        assert "fallback 'fastapi-backend'" in result.output
+        assert (target / "app" / "api" / "routes").is_dir()
+        assert not (target / "src" / "routes").exists()
+
+    def test_prefers_django_drf_for_generic_python_api_exports(self, tmp_path):
+        export_path = tmp_path / "scaffoldkit-input.json"
+        target = tmp_path / "generated-django"
+        export_path.write_text(
+            json.dumps(
+                {
+                    "projectName": "Case Management",
+                    "summary": "Django REST API for internal case administration.",
+                    "blueprint": "rest-api",
+                    "blueprintCandidates": ["rest-api"],
+                    "features": ["DRF serializers", "admin workflows"],
+                    "constraints": ["session auth for internal operators"],
+                    "stack": {"hint": "Python application stack", "dataStore": "relational"},
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        result = runner.invoke(
+            app,
+            ["from-planforge", str(export_path), "--target", str(target), "--no-install"],
+        )
+
+        assert result.exit_code == 0
+        assert "fallback 'django-drf'" in result.output
+        assert (target / "config" / "settings").is_dir()
+        assert not (target / "src" / "routes").exists()
+
     def test_generates_runnable_typescript_cli_from_planforge_export(self, tmp_path):
         export_path = tmp_path / "scaffoldkit-input.json"
         target = tmp_path / "generated-cli"
