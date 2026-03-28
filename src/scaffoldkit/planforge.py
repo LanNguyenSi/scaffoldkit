@@ -115,7 +115,9 @@ def build_variables_from_planforge(
         )
 
     has_docker_signal = bool(re.search(r"docker|container|kubernetes|compose", combined_text))
-    has_queue_signal = bool(re.search(r"background jobs|queue|workflow|notification", combined_text))
+    has_queue_signal = bool(
+        re.search(r"background jobs|queue|workflow|notification", combined_text)
+    )
     has_public_signal = bool(re.search(r"public-only|anonymous|no auth", combined_text))
 
     if should_infer("use_docker") and has_docker_signal:

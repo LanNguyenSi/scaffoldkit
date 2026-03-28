@@ -154,7 +154,10 @@ class TestPlanforgeImportHintsForPythonBackends:
         export_data = PlanforgeExport.model_validate(
             {
                 "projectName": "workflow-orchestrator",
-                "summary": "Python backend service with queued workflows and Redis-backed coordination.",
+                "summary": (
+                    "Python backend service with queued workflows and Redis-backed "
+                    "coordination."
+                ),
                 "blueprint": "fastapi-backend",
                 "features": ["background job orchestration", "workflow API"],
                 "constraints": ["must run in Docker", "JWT authentication required"],
