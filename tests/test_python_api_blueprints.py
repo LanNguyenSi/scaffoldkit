@@ -155,8 +155,7 @@ class TestPlanforgeImportHintsForPythonBackends:
             {
                 "projectName": "workflow-orchestrator",
                 "summary": (
-                    "Python backend service with queued workflows and Redis-backed "
-                    "coordination."
+                    "Python backend service with queued workflows and Redis-backed coordination."
                 ),
                 "blueprint": "fastapi-backend",
                 "features": ["background job orchestration", "workflow API"],
