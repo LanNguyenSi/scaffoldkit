@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from scaffoldkit.blueprint_loader import discover_blueprints, load_blueprint
+from scaffoldkit.blueprint_loader import discover_blueprints, get_blueprints_dir, load_blueprint
 from scaffoldkit.models import Blueprint
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
@@ -26,6 +26,21 @@ class TestDiscoverBlueprints:
         (tmp_path / "not-a-blueprint" / "random.txt").write_text("hi")
         results = discover_blueprints(tmp_path)
         assert results == []
+
+    def test_prefers_checkout_blueprints_when_running_inside_repo(self, tmp_path, monkeypatch):
+        repo_root = tmp_path / "scaffoldkit-checkout"
+        blueprints_dir = repo_root / "src" / "scaffoldkit" / "blueprints"
+        (blueprints_dir / "sample").mkdir(parents=True)
+        (blueprints_dir / "sample" / "blueprint.yaml").write_text(
+            "name: sample\ndisplay_name: Sample\n",
+            encoding="utf-8",
+        )
+        (repo_root / "pyproject.toml").write_text('[project]\nname = "scaffoldkit"\n')
+
+        monkeypatch.chdir(repo_root)
+        monkeypatch.delenv("SCAFFOLDKIT_BLUEPRINTS_DIR", raising=False)
+
+        assert get_blueprints_dir() == blueprints_dir
 
 
 class TestLoadBlueprint:
