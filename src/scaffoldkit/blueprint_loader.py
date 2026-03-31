@@ -9,15 +9,35 @@ import yaml
 
 from scaffoldkit.models import Blueprint
 
-BLUEPRINTS_DIR = Path(
-    os.environ.get("SCAFFOLDKIT_BLUEPRINTS_DIR", "")
-    or str(Path(__file__).resolve().parent / "blueprints")
-)
+_PACKAGED_BLUEPRINTS_DIR = Path(__file__).resolve().parent / "blueprints"
+
+
+def _find_checkout_blueprints_dir() -> Path | None:
+    """Return blueprints from a local scaffoldkit checkout when running inside one."""
+    try:
+        current = Path.cwd().resolve()
+    except OSError:
+        return None
+
+    for base in [current, *current.parents]:
+        candidate = base / "src" / "scaffoldkit" / "blueprints"
+        if candidate.is_dir() and (base / "pyproject.toml").is_file():
+            return candidate
+
+    return None
 
 
 def get_blueprints_dir() -> Path:
     """Return the default blueprints directory."""
-    return BLUEPRINTS_DIR
+    configured_dir = os.environ.get("SCAFFOLDKIT_BLUEPRINTS_DIR")
+    if configured_dir:
+        return Path(configured_dir).expanduser()
+
+    checkout_dir = _find_checkout_blueprints_dir()
+    if checkout_dir is not None:
+        return checkout_dir
+
+    return _PACKAGED_BLUEPRINTS_DIR
 
 
 def discover_blueprints(blueprints_dir: Path | None = None) -> list[tuple[str, Path]]:

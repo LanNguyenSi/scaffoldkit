@@ -143,7 +143,7 @@ install_native() {
   # Python is downloaded automatically by uv if not already present.
   echo ""
   echo "==> Installing scaffoldkit via uv tool install..."
-  uv tool install "$SCRIPT_DIR"
+  uv tool install --reinstall "$SCRIPT_DIR"
 
   ensure_local_bin_in_path
 
