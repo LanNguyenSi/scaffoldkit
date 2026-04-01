@@ -78,10 +78,10 @@ class TestReferencePhpAppBlueprint:
         assert "github.ref == 'refs/tags/*'" not in pipeline
         assert (
             "with:\n"
-"          image-name: ${{ env.CI_IMAGE_NAME }}\n"
-"          artifact-name: ${{ env.CI_ARTIFACT_NAME }}\n"
-"          dockerfile: build/app/Dockerfile\n"
-"          context: ."
+            "          image-name: ${{ env.CI_IMAGE_NAME }}\n"
+            "          artifact-name: ${{ env.CI_ARTIFACT_NAME }}\n"
+            "          dockerfile: build/app/Dockerfile\n"
+            "          context: ."
         ) in pipeline
         assert "image-name: ${{ env.CI_IMAGE_NAME }}          dockerfile:" not in pipeline
         assert "#      target_overlay: test" in pipeline

@@ -103,9 +103,7 @@ class TestFastapiBackendBlueprint:
         assert "db:" in compose
 
     def test_skips_docker_contracts_when_disabled(self, tmp_path: Path):
-        output = _generate(
-            tmp_path, "fastapi-backend", {**_FASTAPI_DEFAULTS, "use_docker": False}
-        )
+        output = _generate(tmp_path, "fastapi-backend", {**_FASTAPI_DEFAULTS, "use_docker": False})
         assert not (output / ".dockerignore").exists()
         assert not (output / "Dockerfile").exists()
         assert not (output / "docker-compose.yml").exists()
