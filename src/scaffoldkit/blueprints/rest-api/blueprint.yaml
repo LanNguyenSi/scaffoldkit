@@ -102,6 +102,34 @@ templates:
   - source: README.md.j2
     target: README.md
 
+  - source: pyproject.toml.j2
+    target: pyproject.toml
+    condition: is_fastapi
+
+  - source: requirements.txt.j2
+    target: requirements.txt
+    condition: is_fastapi
+
+  - source: requirements-dev.txt.j2
+    target: requirements-dev.txt
+    condition: is_fastapi
+
+  - source: package.json.j2
+    target: package.json
+    condition: is_express
+
+  - source: pom.xml.j2
+    target: pom.xml
+    condition: is_spring_boot
+
+  - source: django-manage.py.j2
+    target: manage.py
+    condition: is_django_rest
+
+  - source: django-pyproject.toml.j2
+    target: pyproject.toml
+    condition: is_django_rest
+
   - source: .dockerignore.j2
     target: .dockerignore
     condition: use_docker

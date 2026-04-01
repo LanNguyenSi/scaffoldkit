@@ -4,13 +4,15 @@
 
 ## Quick Start
 
-```bash
-# Install dependencies
-npm install    # or pnpm install
-
-# Start development
-npm run dev
-```
+{% if stack == "nextjs-fullstack" %}
+{% include "readme/quickstart-nextjs-fullstack.md.j2" %}
+{% elif stack == "symfony-api-react" %}
+{% include "readme/quickstart-symfony-api-react.md.j2" %}
+{% elif stack == "django-htmx" %}
+{% include "readme/quickstart-django-htmx.md.j2" %}
+{% elif stack == "rails-hotwire" %}
+{% include "readme/quickstart-rails-hotwire.md.j2" %}
+{% endif %}
 
 ## Architecture
 
@@ -47,6 +49,16 @@ npm run dev
 └── README.md
 ```
 
+{% if stack == "nextjs-fullstack" %}
+{% include "readme/manifest-nextjs-fullstack.md.j2" %}
+{% elif stack == "symfony-api-react" %}
+{% include "readme/manifest-symfony-api-react.md.j2" %}
+{% elif stack == "django-htmx" %}
+{% include "readme/manifest-django-htmx.md.j2" %}
+{% elif stack == "rails-hotwire" %}
+{% include "readme/manifest-rails-hotwire.md.j2" %}
+{% endif %}
+
 ## Documentation
 
 - [Architecture](docs/architecture.md)
@@ -65,10 +77,15 @@ Reference designs for standard pages:
 
 Strategy: **{{ test_strategy }}**
 
-```bash
-npm run test        # Run unit tests
-npm run test:e2e    # Run e2e tests (if configured)
-```
+{% if stack == "nextjs-fullstack" %}
+{% include "readme/testing-nextjs-fullstack.md.j2" %}
+{% elif stack == "symfony-api-react" %}
+{% include "readme/testing-symfony-api-react.md.j2" %}
+{% elif stack == "django-htmx" %}
+{% include "readme/testing-django-htmx.md.j2" %}
+{% elif stack == "rails-hotwire" %}
+{% include "readme/testing-rails-hotwire.md.j2" %}
+{% endif %}
 
 ## Design
 

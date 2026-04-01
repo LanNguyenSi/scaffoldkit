@@ -48,6 +48,7 @@ class TestFullGeneration:
 
         expected_files = [
             "README.md",
+            "package.json",
             "AI_CONTEXT.md",
             "docs/architecture.md",
             "docs/ways-of-working.md",
@@ -140,6 +141,15 @@ class TestFullGeneration:
         assert (output / "docker-compose.yml").exists()
         assert (output / ".github" / "workflows" / "ci.yml").exists()
 
+        dockerfile = (output / "Dockerfile").read_text()
+        compose = (output / "docker-compose.yml").read_text()
+        workflow = (output / ".github" / "workflows" / "ci.yml").read_text()
+
+        assert "apps/web && npm install" in dockerfile
+        assert "APP_ROLE: web" in compose
+        assert "APP_ROLE: api" in compose
+        assert "Set up Node" in workflow
+
     def test_skips_docker_and_ci_contracts_when_disabled(self, tmp_path: Path):
         output = _generate_saas_dashboard(tmp_path, use_docker=False, use_ci=False)
         assert not (output / ".dockerignore").exists()
@@ -193,18 +203,89 @@ class TestStackVariations:
     def test_nextjs_fullstack(self, tmp_path: Path):
         output = _generate_saas_dashboard(tmp_path, stack="nextjs-fullstack")
         assert (output / "README.md").exists()
+        assert (output / "package.json").exists()
+        assert (output / "apps" / "web" / ".env.local.example").exists()
+        assert (output / "apps" / "web" / "package.json").exists()
+        assert (output / "apps" / "web" / "app" / "page.tsx").exists()
+        assert (output / "apps" / "web" / "app" / "layout.tsx").exists()
+        assert (output / "apps" / "api" / "package.json").exists()
+        assert (output / "apps" / "api" / ".env.example").exists()
+        assert (output / "apps" / "api" / "src" / "index.ts").exists()
+
+        root_package = (output / "package.json").read_text()
+        env_example = (output / "apps" / "api" / ".env.example").read_text()
+        assert '"apps/web"' in root_package
+        assert '"apps/api"' in root_package
+        assert "DATABASE_URL=" in env_example
+
+        dockerfile = (output / "Dockerfile").read_text()
+        workflow = (output / ".github" / "workflows" / "ci.yml").read_text()
+        assert "npm run dev -- --hostname 0.0.0.0" in dockerfile
+        assert "Verify Next.js + Node bootstrap" in workflow
 
     def test_symfony_api_react(self, tmp_path: Path):
         output = _generate_saas_dashboard(tmp_path, stack="symfony-api-react")
         readme = (output / "README.md").read_text()
         assert "symfony-api-react" in readme
+        assert (output / "package.json").exists()
+        assert (output / "apps" / "web" / "package.json").exists()
+        assert (output / "apps" / "web" / "index.html").exists()
+        assert (output / "apps" / "web" / "src" / "main.tsx").exists()
+        assert (output / "apps" / "api" / "composer.json").exists()
+        assert (output / "apps" / "api" / ".env.example").exists()
+        assert (output / "apps" / "api" / "public" / "index.php").exists()
+        assert (output / "apps" / "api" / "src" / "Kernel.php").exists()
+
+        composer = (output / "apps" / "api" / "composer.json").read_text()
+        env_example = (output / "apps" / "api" / ".env.example").read_text()
+        assert "symfony/framework-bundle" in composer
+        assert "DATABASE_URL=" in env_example
+
+        compose = (output / "docker-compose.yml").read_text()
+        workflow = (output / ".github" / "workflows" / "ci.yml").read_text()
+        assert '"5173:5173"' in compose
+        assert "Set up PHP" in workflow
+        assert "php -l apps/api/public/index.php" in workflow
 
     def test_django_htmx(self, tmp_path: Path):
         output = _generate_saas_dashboard(tmp_path, stack="django-htmx")
         readme = (output / "README.md").read_text()
         assert "django-htmx" in readme
+        assert (output / "pyproject.toml").exists()
+        assert (output / "apps" / "api" / ".env.example").exists()
+        assert (output / "apps" / "api" / "manage.py").exists()
+        assert (output / "apps" / "api" / "config" / "settings.py").exists()
+        assert (output / "apps" / "web" / "templates" / "dashboard" / "index.html").exists()
+
+        pyproject = (output / "pyproject.toml").read_text()
+        settings = (output / "apps" / "api" / "config" / "settings.py").read_text()
+        env_example = (output / "apps" / "api" / ".env.example").read_text()
+        assert '"django>=' in pyproject or "django>=" in pyproject
+        assert "INSTALLED_APPS" in settings
+        assert "DJANGO_SETTINGS_MODULE=" in env_example
+
+        compose = (output / "docker-compose.yml").read_text()
+        workflow = (output / ".github" / "workflows" / "ci.yml").read_text()
+        assert "app:" in compose
+        assert "python -m py_compile" in workflow
 
     def test_rails_hotwire(self, tmp_path: Path):
         output = _generate_saas_dashboard(tmp_path, stack="rails-hotwire")
         readme = (output / "README.md").read_text()
         assert "rails-hotwire" in readme
+        assert (output / "Gemfile").exists()
+        assert (output / "apps" / "api" / ".env.example").exists()
+        assert (output / "apps" / "api" / "config.ru").exists()
+        assert (output / "apps" / "web" / "app" / "views" / "dashboard" / "index.html.erb").exists()
+
+        gemfile = (output / "Gemfile").read_text()
+        routes = (output / "apps" / "api" / "config" / "routes.rb").read_text()
+        env_example = (output / "apps" / "api" / ".env.example").read_text()
+        assert 'gem "rails"' in gemfile
+        assert 'root "dashboard#index"' in routes
+        assert "RAILS_ENV=development" in env_example
+
+        dockerfile = (output / "Dockerfile").read_text()
+        workflow = (output / ".github" / "workflows" / "ci.yml").read_text()
+        assert "ruby -run -e httpd ../web -p 8000" in dockerfile
+        assert "ruby -c apps/api/config/application.rb" in workflow

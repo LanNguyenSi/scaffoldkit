@@ -152,6 +152,21 @@ templates:
   - source: README.md.j2
     target: README.md
 
+  - source: package.json.j2
+    target: package.json
+
+  - source: pnpm-workspace.yaml.j2
+    target: pnpm-workspace.yaml
+
+  - source: apps/web/package.json.j2
+    target: apps/web/package.json
+
+  - source: apps/api/composer.json.j2
+    target: apps/api/composer.json
+
+  - source: packages/shared-types/package.json.j2
+    target: packages/shared-types/package.json
+
   - source: .dockerignore.j2
     target: .dockerignore
     condition: use_docker

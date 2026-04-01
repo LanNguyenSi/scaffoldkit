@@ -107,6 +107,15 @@ templates:
   - source: README.md.j2
     target: README.md
 
+  - source: pyproject.toml.j2
+    target: pyproject.toml
+
+  - source: requirements.txt.j2
+    target: requirements.txt
+
+  - source: requirements-dev.txt.j2
+    target: requirements-dev.txt
+
   - source: .dockerignore.j2
     target: .dockerignore
     condition: use_docker

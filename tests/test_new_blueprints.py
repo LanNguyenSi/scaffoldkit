@@ -57,6 +57,9 @@ class TestRestApiBlueprint:
     def test_generates_all_files(self, tmp_path: Path):
         output = _generate(tmp_path, "rest-api", _REST_API_DEFAULTS)
         assert (output / "README.md").exists()
+        assert (output / "pyproject.toml").exists()
+        assert (output / "requirements.txt").exists()
+        assert (output / "requirements-dev.txt").exists()
         assert (output / "AI_CONTEXT.md").exists()
         assert (output / "docs" / "architecture.md").exists()
         assert (output / "docs" / "api-design.md").exists()
@@ -180,6 +183,7 @@ class TestCliToolBlueprint:
     def test_generates_all_files(self, tmp_path: Path):
         output = _generate(tmp_path, "cli-tool", _CLI_TOOL_DEFAULTS)
         assert (output / "README.md").exists()
+        assert (output / "pyproject.toml").exists()
         assert (output / "AI_CONTEXT.md").exists()
         assert (output / "docs" / "architecture.md").exists()
         assert (output / "docs" / "ways-of-working.md").exists()
@@ -277,6 +281,7 @@ class TestStaticSiteBlueprint:
     def test_generates_all_files(self, tmp_path: Path):
         output = _generate(tmp_path, "static-site", _STATIC_SITE_DEFAULTS)
         assert (output / "README.md").exists()
+        assert (output / "package.json").exists()
         assert (output / "AI_CONTEXT.md").exists()
         assert (output / "docs" / "content-guide.md").exists()
         assert (output / "docs" / "architecture.md").exists()

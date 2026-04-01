@@ -57,6 +57,11 @@ class TestSpringbootBackendBlueprint:
         output = _generate(tmp_path, _DEFAULTS)
 
         assert (output / "README.md").exists()
+        assert (output / "pom.xml").exists()
+        assert (output / "src" / "main" / "resources" / "application.yml").exists()
+        assert (
+            output / "src" / "main" / "java" / "com" / "acme" / "billing" / "Application.java"
+        ).exists()
         assert (output / "AI_CONTEXT.md").exists()
         assert (output / "docs" / "architecture.md").exists()
         assert (output / "docs" / "ways-of-working.md").exists()

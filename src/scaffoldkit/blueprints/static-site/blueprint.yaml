@@ -112,6 +112,9 @@ templates:
   - source: README.md.j2
     target: README.md
 
+  - source: package.json.j2
+    target: package.json
+
   - source: .github/workflows/deploy.yml.j2
     target: .github/workflows/deploy.yml
     condition: use_ci

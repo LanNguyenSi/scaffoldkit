@@ -103,6 +103,18 @@ templates:
   - source: README.md.j2
     target: README.md
 
+  - source: pyproject.toml.j2
+    target: pyproject.toml
+    condition: is_python
+
+  - source: go.mod.j2
+    target: go.mod
+    condition: is_go
+
+  - source: Cargo.toml.j2
+    target: Cargo.toml
+    condition: is_rust
+
   - source: .github/workflows/ci.yml.j2
     target: .github/workflows/ci.yml
     condition: use_ci

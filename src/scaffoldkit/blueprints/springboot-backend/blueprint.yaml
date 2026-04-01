@@ -138,6 +138,24 @@ templates:
   - source: README.md.j2
     target: README.md
 
+  - source: pom.xml.j2
+    target: pom.xml
+    condition: is_maven
+
+  - source: build.gradle.j2
+    target: build.gradle
+    condition: is_gradle
+
+  - source: settings.gradle.j2
+    target: settings.gradle
+    condition: is_gradle
+
+  - source: src/main/java/Application.java.j2
+    target: src/main/java/{{ base_package | replace('.', '/') }}/Application.java
+
+  - source: src/main/resources/application.yml.j2
+    target: src/main/resources/application.yml
+
   - source: .dockerignore.j2
     target: .dockerignore
     condition: use_docker
