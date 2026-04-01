@@ -8,6 +8,7 @@ from scaffoldkit.filesystem import copy_file, ensure_directory, write_file
 from scaffoldkit.models import Blueprint, GenerationContext, GenerationResult
 from scaffoldkit.renderer import create_jinja_env, render_string, render_template
 from scaffoldkit.validators import validate_variables
+from scaffoldkit.variable_conditions import prune_inactive_variables
 
 
 def build_template_context(blueprint: Blueprint, variables: dict[str, Any]) -> dict[str, Any]:
@@ -35,15 +36,16 @@ def generate(context: GenerationContext) -> GenerationResult:
     result = GenerationResult()
     blueprint = context.blueprint
     bp_path = context.blueprint_path
+    active_variables = prune_inactive_variables(blueprint, context.variables)
 
     # 1. Validate
-    errors = validate_variables(blueprint, context.variables)
+    errors = validate_variables(blueprint, active_variables)
     if errors:
         result.errors.extend(errors)
         return result
 
     # 2. Build template context
-    tpl_context = build_template_context(blueprint, context.variables)
+    tpl_context = build_template_context(blueprint, active_variables)
 
     # 3. Create target directory
     if not context.dry_run:

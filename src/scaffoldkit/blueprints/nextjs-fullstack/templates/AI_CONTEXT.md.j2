@@ -11,6 +11,9 @@
 - **Auth:** {{ auth_strategy | upper }}
 - **Language:** {{ language | upper }}
 {% if use_docker %}- **Deployment:** Docker + Traefik{% endif %}
+{% if use_csv_export %}- **Exports:** CSV export is enabled{% endif %}
+{% if use_waitlist %}- **Growth loops:** Waitlist flows are enabled{% endif %}
+{% if use_og_tags %}- **SEO:** Open Graph tags are enabled{% endif %}
 
 ## Agent Context Files
 
@@ -30,3 +33,6 @@
 5. **Feature branches** — `feat/<task-id>-<name>`, PR to main
 6. **No `any` types** — TypeScript strict mode
 {% if use_docker %}7. **Docker builds** — `prisma generate` in both deps AND builder stages{% endif %}
+{% if use_csv_export %}8. **CSV exports** — keep export generation off the request path for large datasets{% endif %}
+{% if use_waitlist %}9. **Waitlist logic** — treat invite states as first-class domain data, not loose booleans{% endif %}
+{% if use_og_tags %}10. **Open Graph** — keep public route metadata complete and deterministic{% endif %}

@@ -12,6 +12,7 @@ from rich.table import Table
 
 from scaffoldkit.blueprint_loader import discover_blueprints, load_blueprint
 from scaffoldkit.models import Blueprint, BlueprintVariable, GenerationContext, VariableType
+from scaffoldkit.variable_conditions import variable_is_active
 
 console = Console()
 
@@ -61,7 +62,13 @@ def collect_variables(
     if not non_interactive:
         console.print(Panel(f"[bold]{blueprint.display_name}[/bold] - configure your project"))
 
+    definitions = {var.name: var for var in blueprint.variables}
+
     for var in blueprint.variables:
+        current_values = {**provided, **variables}
+        if not variable_is_active(var, current_values, definitions):
+            continue
+
         # Use provided value if available
         if var.name in provided:
             variables[var.name] = provided[var.name]

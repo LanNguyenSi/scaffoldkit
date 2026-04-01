@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from scaffoldkit.models import Blueprint, BlueprintVariable, VariableType
+from scaffoldkit.variable_conditions import variable_is_active
 
 
 def validate_variables(blueprint: Blueprint, user_inputs: dict[str, object]) -> list[str]:
@@ -11,8 +12,12 @@ def validate_variables(blueprint: Blueprint, user_inputs: dict[str, object]) -> 
     Returns a list of error messages (empty = valid).
     """
     errors: list[str] = []
+    definitions = {var.name: var for var in blueprint.variables}
 
     for var in blueprint.variables:
+        if not variable_is_active(var, user_inputs, definitions):
+            continue
+
         value = user_inputs.get(var.name)
 
         if var.required and (value is None or value == ""):

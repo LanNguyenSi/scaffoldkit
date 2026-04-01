@@ -131,6 +131,22 @@ templates:
   - source: README.md.j2
     target: README.md
 
+  - source: .dockerignore.j2
+    target: .dockerignore
+    condition: use_docker
+
+  - source: docker-compose.yml.j2
+    target: docker-compose.yml
+    condition: use_docker
+
+  - source: docker/php/Dockerfile.j2
+    target: docker/php/Dockerfile
+    condition: use_docker
+
+  - source: .github/workflows/ci.yml.j2
+    target: .github/workflows/ci.yml
+    condition: use_ci
+
   - source: docs/architecture.md.j2
     target: docs/architecture.md
 

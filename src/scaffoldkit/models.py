@@ -24,6 +24,7 @@ class BlueprintVariable(BaseModel):
     default: Any = None
     choices: list[str] = Field(default_factory=list)
     required: bool = True
+    condition: str | None = None
 
 
 class FileEntry(BaseModel):

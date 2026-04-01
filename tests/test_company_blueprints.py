@@ -231,6 +231,34 @@ class TestNextjsFrontend:
         assert '<div style={{ borderRadius: "8px", background: "white" }}>\n```' in ai_ctx
         assert '<div style={{ borderRadius: "8px", background: "white" }}>```' not in ai_ctx
 
+    def test_generates_docker_and_ci_contracts(self, tmp_path: Path):
+        output = _generate(tmp_path, "nextjs-frontend", _NEXTJS_DEFAULTS)
+        assert (output / ".dockerignore").exists()
+        assert (output / "Dockerfile").exists()
+        assert (output / "docker-compose.yml").exists()
+        assert (output / "docker-compose.prod.yml").exists()
+        assert (output / ".github" / "workflows" / "ci.yml").exists()
+
+        readme = (output / "README.md").read_text()
+        workflow = (output / ".github" / "workflows" / "ci.yml").read_text()
+
+        assert "docker-compose.prod.yml" in readme
+        assert "uses: actions/setup-node@v4" in workflow
+        assert "Add the Next.js bootstrap to enable CI verification." in workflow
+        assert "docker build -t test-web:ci ." in workflow
+
+    def test_skips_docker_and_ci_contracts_when_disabled(self, tmp_path: Path):
+        output = _generate(
+            tmp_path,
+            "nextjs-frontend",
+            {**_NEXTJS_DEFAULTS, "use_docker": False, "use_ci": False},
+        )
+        assert not (output / ".dockerignore").exists()
+        assert not (output / "Dockerfile").exists()
+        assert not (output / "docker-compose.yml").exists()
+        assert not (output / "docker-compose.prod.yml").exists()
+        assert not (output / ".github" / "workflows" / "ci.yml").exists()
+
 
 # ---------------------------------------------------------------------------
 # symfony-nextjs (fullstack)
@@ -325,6 +353,28 @@ class TestSymfonyNextjsFullstack:
         for f in output.rglob("*"):
             if f.is_file():
                 assert f.stat().st_size > 0, f"Empty: {f.relative_to(output)}"
+
+    def test_generates_docker_and_ci_contracts(self, tmp_path: Path):
+        output = _generate(tmp_path, "symfony-nextjs", _FULLSTACK_DEFAULTS)
+        assert (output / ".dockerignore").exists()
+        assert (output / "docker-compose.yml").exists()
+        assert (output / "docker" / "php" / "Dockerfile").exists()
+        assert (output / "docker" / "node" / "Dockerfile").exists()
+        assert (output / "docker" / "nginx" / "nginx.conf").exists()
+        assert (output / ".github" / "workflows" / "api.yml").exists()
+        assert (output / ".github" / "workflows" / "web.yml").exists()
+
+    def test_skips_docker_and_ci_contracts_when_disabled(self, tmp_path: Path):
+        output = _generate(
+            tmp_path,
+            "symfony-nextjs",
+            {**_FULLSTACK_DEFAULTS, "use_docker": False, "use_ci": False},
+        )
+        assert not (output / ".dockerignore").exists()
+        assert not (output / "docker-compose.yml").exists()
+        assert not (output / "docker" / "php" / "Dockerfile").exists()
+        assert not (output / ".github" / "workflows" / "api.yml").exists()
+        assert not (output / ".github" / "workflows" / "web.yml").exists()
 
 
 class TestPlanforgeImportHints:

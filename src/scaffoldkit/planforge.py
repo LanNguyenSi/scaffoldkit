@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 from pydantic import BaseModel, ConfigDict, Field
 
 from scaffoldkit.models import Blueprint, BlueprintVariable, VariableType
+from scaffoldkit.variable_conditions import prune_inactive_variables
 
 
 class PlanforgeArchitecture(BaseModel):
@@ -308,7 +309,7 @@ def normalize_variables_for_blueprint(
             continue
         normalized[variable.name] = normalize_variable_value(variable, normalized[variable.name])
 
-    return normalized
+    return prune_inactive_variables(blueprint, normalized)
 
 
 def normalize_variable_value(variable: BlueprintVariable, value: Any) -> Any:

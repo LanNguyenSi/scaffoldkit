@@ -7,6 +7,7 @@ import pytest
 from scaffoldkit.blueprint_loader import load_blueprint
 from scaffoldkit.generator import generate
 from scaffoldkit.models import GenerationContext
+from scaffoldkit.planforge import PlanforgeExport, build_variables_from_planforge
 
 BLUEPRINTS_DIR = Path(__file__).resolve().parent.parent / "src" / "scaffoldkit" / "blueprints"
 
@@ -94,11 +95,62 @@ class TestRestApiBlueprint:
         ai_ctx = (output / "AI_CONTEXT.md").read_text()
         assert "oauth2" in ai_ctx.lower() or "OAuth" in ai_ctx
 
+    def test_can_disable_auth_without_auth_strategy(self, tmp_path: Path):
+        variables = {**_REST_API_DEFAULTS, "use_auth": False}
+        del variables["auth_strategy"]
+
+        output = _generate(tmp_path, "rest-api", variables)
+        readme = (output / "README.md").read_text()
+
+        assert "oauth2" not in readme.lower()
+
+    def test_planforge_drops_auth_strategy_when_auth_is_disabled(self):
+        export_data = PlanforgeExport.model_validate(
+            {
+                "projectName": "Public Status API",
+                "summary": "Anonymous public-only API for status pages.",
+                "blueprint": "rest-api",
+                "constraints": ["public-only", "no auth"],
+                "suggestedVariables": {"auth_strategy": "jwt"},
+            }
+        )
+        blueprint = load_blueprint(BLUEPRINTS_DIR / "rest-api")
+
+        variables = build_variables_from_planforge(export_data, blueprint)
+
+        assert variables["use_auth"] is False
+        assert "auth_strategy" not in variables
+
     def test_files_are_nonempty(self, tmp_path: Path):
         output = _generate(tmp_path, "rest-api", _REST_API_DEFAULTS)
         for f in output.rglob("*"):
             if f.is_file():
                 assert f.stat().st_size > 0, f"Empty: {f.relative_to(output)}"
+
+    def test_generates_docker_and_ci_contracts(self, tmp_path: Path):
+        output = _generate(tmp_path, "rest-api", _REST_API_DEFAULTS)
+        assert (output / ".dockerignore").exists()
+        assert (output / "Dockerfile").exists()
+        assert (output / "docker-compose.yml").exists()
+        assert (output / ".github" / "workflows" / "ci.yml").exists()
+
+        compose = (output / "docker-compose.yml").read_text()
+        workflow = (output / ".github" / "workflows" / "ci.yml").read_text()
+
+        assert "dockerfile: Dockerfile" in compose
+        assert "db:" in compose
+        assert "postgres:15" in compose
+        assert "actions/setup-python@v5" in workflow
+        assert "docker build -t test-api:ci ." in workflow
+
+    def test_skips_docker_and_ci_contracts_when_disabled(self, tmp_path: Path):
+        output = _generate(
+            tmp_path, "rest-api", {**_REST_API_DEFAULTS, "use_docker": False, "use_ci": False}
+        )
+        assert not (output / ".dockerignore").exists()
+        assert not (output / "Dockerfile").exists()
+        assert not (output / "docker-compose.yml").exists()
+        assert not (output / ".github" / "workflows" / "ci.yml").exists()
 
 
 # ---------------------------------------------------------------------------
@@ -184,6 +236,16 @@ class TestCliToolBlueprint:
         assert (output / "src" / "commands" / "config.ts").exists()
         assert (output / "src" / "config" / "loader.ts").exists()
         assert (output / "tests" / "run.test.ts").exists()
+
+    def test_generates_ci_contract_when_enabled(self, tmp_path: Path):
+        output = _generate(tmp_path, "cli-tool", _CLI_TOOL_DEFAULTS)
+        assert (output / ".github" / "workflows" / "ci.yml").exists()
+        workflow = (output / ".github" / "workflows" / "ci.yml").read_text()
+        assert ".github/workflows/ci.yml" in workflow or "name: CI" in workflow
+
+    def test_skips_ci_contract_when_disabled(self, tmp_path: Path):
+        output = _generate(tmp_path, "cli-tool", {**_CLI_TOOL_DEFAULTS, "use_ci": False})
+        assert not (output / ".github" / "workflows" / "ci.yml").exists()
 
 
 # ---------------------------------------------------------------------------
@@ -271,3 +333,13 @@ class TestStaticSiteBlueprint:
         for f in output.rglob("*"):
             if f.is_file():
                 assert f.stat().st_size > 0, f"Empty: {f.relative_to(output)}"
+
+    def test_generates_ci_contract_when_enabled(self, tmp_path: Path):
+        output = _generate(tmp_path, "static-site", _STATIC_SITE_DEFAULTS)
+        assert (output / ".github" / "workflows" / "deploy.yml").exists()
+        workflow = (output / ".github" / "workflows" / "deploy.yml").read_text()
+        assert "name: Site Pipeline" in workflow
+
+    def test_skips_ci_contract_when_disabled(self, tmp_path: Path):
+        output = _generate(tmp_path, "static-site", {**_STATIC_SITE_DEFAULTS, "use_ci": False})
+        assert not (output / ".github" / "workflows" / "deploy.yml").exists()

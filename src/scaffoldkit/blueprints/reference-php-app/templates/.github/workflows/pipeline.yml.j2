@@ -8,36 +8,50 @@ on:
       - 'release/*'
       - 'feature/*'
       - 'hotfix/*'
+    tags:
+      - 'v*'
   pull_request:
     branches:
       - develop
       - master
-  create:
-    tags:
-      - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
 env:
-  IMAGE_NAME: {{ '${{ github.repository }}' }}
-  CI_IMAGE_NAME: {{ '${{ github.repository }}' }}-ci
+  IMAGE_NAME: {{ '${{ github.event.repository.name }}' }}
+  REGISTRY_IMAGE: ghcr.io/{{ '${{ github.repository_owner }}' }}/{{ '${{ github.event.repository.name }}' }}
+  CI_IMAGE_NAME: {{ '${{ github.event.repository.name }}' }}-ci
+  CI_ARTIFACT_NAME: ci-image
+  PROD_ARTIFACT_NAME: prod-image
 
 jobs:
   secret-scan:
     name: Scan for Secrets
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Run Secret Scan
-        uses: {{ project_name }}/.github/actions/secret-scan
+        uses: ./.github/actions/secret-scan
 
   build-ci-image:
     name: Build CI Image
     runs-on: ubuntu-latest
     needs: secret-scan
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Build CI image
-        uses: {{ project_name }}/.github/actions/build-ci-image
+        uses: ./.github/actions/build-ci-image
         with:
           image-name: {{ '${{ env.CI_IMAGE_NAME }}' }}
+          artifact-name: {{ '${{ env.CI_ARTIFACT_NAME }}' }}
           dockerfile: build/app/Dockerfile
           context: .
 
@@ -46,10 +60,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-ci-image
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Run Static Code Analysis
-        uses: {{ project_name }}/.github/actions/make-command
+        uses: ./.github/actions/make-command
         with:
           image-name: {{ '${{ env.CI_IMAGE_NAME }}' }}
+          artifact-name: {{ '${{ env.CI_ARTIFACT_NAME }}' }}
           make-command: lint
 
   test-unit:
@@ -57,10 +75,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-ci-image
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Run unit tests
-        uses: {{ project_name }}/.github/actions/make-command
+        uses: ./.github/actions/make-command
         with:
           image-name: {{ '${{ env.CI_IMAGE_NAME }}' }}
+          artifact-name: {{ '${{ env.CI_ARTIFACT_NAME }}' }}
           make-command: test-unit
 
   test-integration:
@@ -68,10 +90,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-ci-image
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Run integration tests
-        uses: {{ project_name }}/.github/actions/make-command
+        uses: ./.github/actions/make-command
         with:
           image-name: {{ '${{ env.CI_IMAGE_NAME }}' }}
+          artifact-name: {{ '${{ env.CI_ARTIFACT_NAME }}' }}
           make-command: test-integration
 
   license-check:
@@ -79,32 +105,42 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-ci-image
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Run License Check
         continue-on-error: true
-        uses: {{ project_name }}/.github/actions/license-check
+        uses: ./.github/actions/license-check
         with:
-          image-name: {{ '${{ env.CI_IMAGE_NAME }}' }}
+          artifact-name: {{ '${{ env.CI_ARTIFACT_NAME }}' }}
 
   cve-check:
     name: CVE Check
     runs-on: ubuntu-latest
     needs: build-ci-image
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Run CVE scan
-        uses: {{ project_name }}/.github/actions/cve-check
+        uses: ./.github/actions/cve-check
         with:
-          image-name: {{ '${{ env.CI_IMAGE_NAME }}' }}
+          artifact-name: {{ '${{ env.CI_ARTIFACT_NAME }}' }}
 
   build-prod-image:
     name: Build Prod Image
     runs-on: ubuntu-latest
     needs: [lint, test-unit, test-integration, license-check, cve-check]
-    if: github.ref_name == 'develop' || github.ref_name == 'release/*' || github.ref == 'refs/tags/*'
+    if: github.ref_name == 'develop' || startsWith(github.ref_name, 'release/') || startsWith(github.ref, 'refs/tags/')
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Build Prod image
-        uses: {{ project_name }}/.github/actions/build-prod-image
+        uses: ./.github/actions/build-prod-image
         with:
-          image-name: {{ '${{ env.IMAGE_NAME }}' }}
+          image-name: {{ '${{ env.REGISTRY_IMAGE }}' }}
+          artifact-name: {{ '${{ env.PROD_ARTIFACT_NAME }}' }}
           dockerfile: build/app/Dockerfile
           context: .
 
@@ -113,10 +149,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-prod-image
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Run CVE scan
-        uses: {{ project_name }}/.github/actions/cve-check
+        uses: ./.github/actions/cve-check
         with:
-          image-name: {{ '${{ env.IMAGE_NAME }}' }}
+          artifact-name: {{ '${{ env.PROD_ARTIFACT_NAME }}' }}
 
   sign-image:
     name: Sign Image
@@ -136,7 +175,7 @@ jobs:
       - name: Sign Docker image
         uses: publicplan-internal/.github/actions/sign-container@feature/add-cosign-action
         with:
-          image_digest_ref: "ghcr.io/{{ '${{ github.repository_owner }}' }}/{{ '${{ env.IMAGE_NAME }}' }}:{{ '${{ github.sha }}' }}"
+          image_digest_ref: "{{ '${{ env.REGISTRY_IMAGE }}' }}:{{ '${{ github.sha }}' }}"
           cosign_private_key: {{ '${{ secrets.COSIGN_PRIVATE_KEY }}' }}
           cosign_password: {{ '${{ secrets.COSIGN_PASSWORD }}' }}
 
@@ -144,12 +183,22 @@ jobs:
     name: Tag Image
     runs-on: ubuntu-latest
     needs: sign-image
-    if: github.ref == 'refs/tags/*'
+    if: startsWith(github.ref, 'refs/tags/')
     steps:
-      - name: Tag image
-        uses: {{ project_name }}/.github/actions/tag-image
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          image-name: {{ '${{ env.IMAGE_NAME }}' }}
+          registry: ghcr.io
+          username: {{ '${{ github.actor }}' }}
+          password: {{ '${{ secrets.GITHUB_TOKEN }}' }}
+
+      - name: Tag image
+        uses: ./.github/actions/tag-image
+        with:
+          image-name: {{ '${{ env.REGISTRY_IMAGE }}' }}
 
   deploy-test:
     name: Deploy to Test
@@ -168,7 +217,7 @@ jobs:
   deploy-stage:
     name: Deploy to Stage
     needs: [sign-image]
-    if: github.ref_name == 'release/*'
+    if: startsWith(github.ref_name, 'release/')
     uses: publicplan-internal/.github/.github/workflows/ci-cd.yaml@main
     with:
       repository: {{ '${{ github.repository }}' }}
@@ -182,7 +231,7 @@ jobs:
   deploy-prod:
     name: Deploy to Production
     needs: [tag-image]
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/tags/*'
+    if: github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/tags/')
     uses: publicplan-internal/.github/.github/workflows/ci-cd.yaml@main
     with:
       repository: {{ '${{ github.repository }}' }}
@@ -199,7 +248,10 @@ jobs:
     needs: [ lint, test-unit, test-integration, license-check, cve-check ]
     if: always()
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Remove artefacts from cache
-        uses: {{ project_name }}/.github/actions/cleanup-cache
+        uses: ./.github/actions/cleanup-cache
         with:
-          image-name: {{ '${{ env.CI_IMAGE_NAME }}' }}
+          artifact-name: {{ '${{ env.CI_ARTIFACT_NAME }}' }}

@@ -152,6 +152,34 @@ templates:
   - source: README.md.j2
     target: README.md
 
+  - source: .dockerignore.j2
+    target: .dockerignore
+    condition: use_docker
+
+  - source: docker-compose.yml.j2
+    target: docker-compose.yml
+    condition: use_docker
+
+  - source: docker/php/Dockerfile.j2
+    target: docker/php/Dockerfile
+    condition: use_docker
+
+  - source: docker/node/Dockerfile.j2
+    target: docker/node/Dockerfile
+    condition: use_docker
+
+  - source: docker/nginx/nginx.conf.j2
+    target: docker/nginx/nginx.conf
+    condition: use_docker
+
+  - source: .github/workflows/api.yml.j2
+    target: .github/workflows/api.yml
+    condition: use_ci
+
+  - source: .github/workflows/web.yml.j2
+    target: .github/workflows/web.yml
+    condition: use_ci
+
   - source: docs/architecture.md.j2
     target: docs/architecture.md
 

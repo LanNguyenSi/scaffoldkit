@@ -64,6 +64,30 @@ class TestSpringbootBackendBlueprint:
         assert (output / "docs" / "adrs" / "0001-architecture.md").exists()
         assert (output / ".editorconfig").exists()
         assert (output / ".gitignore").exists()
+        assert (output / ".dockerignore").exists()
+        assert (output / "Dockerfile").exists()
+        assert (output / "docker-compose.yml").exists()
+        assert (output / ".github" / "workflows" / "ci.yml").exists()
+
+    def test_generates_docker_and_ci_contracts(self, tmp_path: Path):
+        output = _generate(tmp_path, _DEFAULTS)
+        compose = (output / "docker-compose.yml").read_text()
+        workflow = (output / ".github" / "workflows" / "ci.yml").read_text()
+
+        assert "dockerfile: Dockerfile" in compose
+        assert "postgres:" in compose
+        assert "SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/billing-service" in compose
+        assert "uses: actions/setup-java@v4" in workflow
+        assert 'java-version: "21"' in workflow
+        assert "Add the Spring Boot bootstrap to enable CI verification." in workflow
+        assert "docker build -t billing-service:ci ." in workflow
+
+    def test_skips_docker_and_ci_contracts_when_disabled(self, tmp_path: Path):
+        output = _generate(tmp_path, {**_DEFAULTS, "use_docker": False, "use_ci": False})
+        assert not (output / ".dockerignore").exists()
+        assert not (output / "Dockerfile").exists()
+        assert not (output / "docker-compose.yml").exists()
+        assert not (output / ".github" / "workflows" / "ci.yml").exists()
 
     def test_creates_java_package_directories(self, tmp_path: Path):
         output = _generate(tmp_path, _DEFAULTS)

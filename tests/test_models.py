@@ -31,6 +31,7 @@ class TestBlueprintVariable:
         assert var.default is None
         assert var.required is True
         assert var.choices == []
+        assert var.condition is None
 
     def test_choice_variable(self):
         var = BlueprintVariable(
@@ -48,6 +49,16 @@ class TestBlueprintVariable:
             default=False,
         )
         assert var.type == VariableType.BOOLEAN
+
+    def test_conditional_variable(self):
+        var = BlueprintVariable(
+            name="auth_strategy",
+            type=VariableType.CHOICE,
+            choices=["jwt", "oauth2"],
+            default="jwt",
+            condition="use_auth",
+        )
+        assert var.condition == "use_auth"
 
 
 class TestFileEntry:

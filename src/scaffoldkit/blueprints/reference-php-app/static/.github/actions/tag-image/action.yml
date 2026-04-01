@@ -1,15 +1,14 @@
 name: Tag Image
-description: Sets the image tag
+description: Tags and pushes a previously built container image
 inputs:
   image-name:
-    description: Image name
+    description: Fully qualified image reference without the tag
     required: true
 runs:
   using: composite
   steps:
-    - name: Run CVE scan
+    - name: Tag and push image
       shell: bash
       run: |
-        REGISTRY_IMAGE="ghcr.io/${{ github.repository_owner }}/${{ inputs.image-name }}"
-        docker tag "${REGISTRY_IMAGE}:${{ github.sha }}" "${REGISTRY_IMAGE}:${{ github.ref_name }}"
-        docker push "${REGISTRY_IMAGE}:${{ github.ref_name }}"
+        docker tag "${{ inputs.image-name }}:${{ github.sha }}" "${{ inputs.image-name }}:${{ github.ref_name }}"
+        docker push "${{ inputs.image-name }}:${{ github.ref_name }}"
