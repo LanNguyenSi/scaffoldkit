@@ -20,6 +20,11 @@ def build_template_context(blueprint: Blueprint, variables: dict[str, Any]) -> d
     ctx["blueprint_stack"] = blueprint.stack
     language = str(variables.get("language", "")).lower()
     config_format = str(variables.get("config_format", "")).lower()
+    package_manager = str(variables.get("package_manager", "")).lower()
+    build_tool = str(variables.get("build_tool", "")).lower()
+    framework = str(variables.get("framework", "")).lower()
+    stack = str(variables.get("stack", "")).lower()
+    api_style = str(variables.get("api_style", "")).lower()
     ctx["is_python"] = language == "python"
     ctx["is_go"] = language == "go"
     ctx["is_rust"] = language == "rust"
@@ -27,6 +32,36 @@ def build_template_context(blueprint: Blueprint, variables: dict[str, Any]) -> d
     ctx["is_json_config"] = config_format == "json"
     ctx["is_yaml_config"] = config_format == "yaml"
     ctx["is_toml_config"] = config_format == "toml"
+    ctx["is_uv"] = package_manager == "uv"
+    ctx["is_poetry"] = package_manager == "poetry"
+    ctx["is_pip_tools"] = package_manager == "pip-tools"
+    ctx["is_maven"] = build_tool == "maven"
+    ctx["is_gradle"] = build_tool == "gradle"
+    ctx["is_fastapi"] = framework == "fastapi"
+    ctx["is_express"] = framework == "express"
+    ctx["is_django_rest"] = framework == "django-rest"
+    ctx["is_spring_boot"] = framework == "spring-boot"
+    ctx["is_astro"] = framework == "astro"
+    ctx["is_nextjs_static"] = framework == "nextjs-static"
+    ctx["is_hugo"] = framework == "hugo"
+    ctx["is_eleventy"] = framework == "eleventy"
+    ctx["is_nextjs_fullstack"] = stack == "nextjs-fullstack"
+    ctx["is_symfony_api_react"] = stack == "symfony-api-react"
+    ctx["is_django_htmx"] = stack == "django-htmx"
+    ctx["is_rails_hotwire"] = stack == "rails-hotwire"
+    ctx["is_api_platform"] = api_style == "api-platform"
+    ctx["is_custom_controllers"] = api_style == "custom-controllers"
+    ctx["is_fos_rest"] = api_style == "fos-rest"
+    use_docker = bool(variables.get("use_docker"))
+    use_ci = bool(variables.get("use_ci"))
+    ctx["is_nextjs_fullstack_docker"] = ctx["is_nextjs_fullstack"] and use_docker
+    ctx["is_symfony_api_react_docker"] = ctx["is_symfony_api_react"] and use_docker
+    ctx["is_django_htmx_docker"] = ctx["is_django_htmx"] and use_docker
+    ctx["is_rails_hotwire_docker"] = ctx["is_rails_hotwire"] and use_docker
+    ctx["is_nextjs_fullstack_ci"] = ctx["is_nextjs_fullstack"] and use_ci
+    ctx["is_symfony_api_react_ci"] = ctx["is_symfony_api_react"] and use_ci
+    ctx["is_django_htmx_ci"] = ctx["is_django_htmx"] and use_ci
+    ctx["is_rails_hotwire_ci"] = ctx["is_rails_hotwire"] and use_ci
     ctx.update(blueprint.metadata)
     return ctx
 

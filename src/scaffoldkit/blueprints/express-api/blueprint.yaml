@@ -75,6 +75,12 @@ templates:
   - source: README.md.j2
     target: README.md
 
+  - source: package.json.j2
+    target: package.json
+
+  - source: tsconfig.json.j2
+    target: tsconfig.json
+
   - source: Makefile.j2
     target: Makefile
 

@@ -14,6 +14,34 @@ _FLAG_CONTRACTS = {
     "use_ci": (".github/workflows/",),
 }
 
+_PRIMARY_MANIFEST_CONTRACTS = {
+    "cli-tool": ("Cargo.toml", "go.mod", "package.json", "pyproject.toml"),
+    "django-drf": ("pyproject.toml", "requirements.txt", "requirements-dev.txt"),
+    "express-api": ("package.json", "tsconfig.json"),
+    "fastapi-backend": ("pyproject.toml", "requirements.txt", "requirements-dev.txt"),
+    "nextjs-frontend": ("package.json",),
+    "nextjs-fullstack": ("package.json",),
+    "reference-php-app": ("tools/composer.json",),
+    "rest-api": ("package.json", "pom.xml", "pyproject.toml"),
+    "saas-dashboard": (
+        "package.json",
+        "apps/web/package.json",
+        "apps/api/composer.json",
+        "pyproject.toml",
+        "apps/api/manage.py",
+        "Gemfile",
+    ),
+    "springboot-backend": ("pom.xml", "src/main/resources/application.yml"),
+    "static-site": ("package.json",),
+    "symfony-backend": ("composer.json", "public/index.php", "bin/console"),
+    "symfony-nextjs": (
+        "package.json",
+        "pnpm-workspace.yaml",
+        "apps/web/package.json",
+        "apps/api/composer.json",
+    ),
+}
+
 _KNOWN_GAPS: set[tuple[str, str]] = set()
 _KNOWN_UNUSED_VARIABLES: set[tuple[str, str]] = set()
 
@@ -84,7 +112,29 @@ def _audit_unused_variable_gaps() -> set[tuple[str, str]]:
     return gaps
 
 
+def _audit_primary_manifest_contract_gaps() -> set[tuple[str, str]]:
+    gaps: set[tuple[str, str]] = set()
+    for blueprint_name, required_targets in _PRIMARY_MANIFEST_CONTRACTS.items():
+        blueprint_dir = BLUEPRINTS_DIR / blueprint_name
+        data = yaml.safe_load((blueprint_dir / "blueprint.yaml").read_text())
+        targets = {
+            str(entry.get("target", ""))
+            for section in ("templates", "static_files")
+            for entry in data.get(section, [])
+        }
+
+        for required_target in required_targets:
+            if required_target not in targets:
+                gaps.add((blueprint_name, required_target))
+
+    return gaps
+
+
 class TestBlueprintContractAudit:
+    def test_primary_manifest_contracts(self):
+        """Runnable blueprints should declare their primary manifest/bootstrap files."""
+        assert _audit_primary_manifest_contract_gaps() == set()
+
     def test_known_infra_contract_gaps_snapshot(self):
         """Track blueprints whose docker/CI flags do not generate matching files yet."""
         assert _audit_flag_contract_gaps() == _KNOWN_GAPS

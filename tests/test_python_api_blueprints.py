@@ -53,6 +53,9 @@ class TestFastapiBackendBlueprint:
     def test_generates_all_files(self, tmp_path: Path):
         output = _generate(tmp_path, "fastapi-backend", _FASTAPI_DEFAULTS)
         assert (output / "README.md").exists()
+        assert (output / "pyproject.toml").exists()
+        assert (output / "requirements.txt").exists()
+        assert (output / "requirements-dev.txt").exists()
         assert (output / "AI_CONTEXT.md").exists()
         assert (output / "docs" / "architecture.md").exists()
         assert (output / "docs" / "api-conventions.md").exists()
@@ -135,6 +138,9 @@ class TestDjangoDrfBlueprint:
     def test_generates_all_files(self, tmp_path: Path):
         output = _generate(tmp_path, "django-drf", _DJANGO_DEFAULTS)
         assert (output / "README.md").exists()
+        assert (output / "pyproject.toml").exists()
+        assert (output / "requirements.txt").exists()
+        assert (output / "requirements-dev.txt").exists()
         assert (output / "AI_CONTEXT.md").exists()
         assert (output / "docs" / "architecture.md").exists()
         assert (output / "docs" / "api-conventions.md").exists()

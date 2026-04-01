@@ -58,6 +58,7 @@ class TestSymfonyBackend:
     def test_generates_all_files(self, tmp_path: Path):
         output = _generate(tmp_path, "symfony-backend", _SYMFONY_DEFAULTS)
         assert (output / "README.md").exists()
+        assert (output / "composer.json").exists()
         assert (output / "AI_CONTEXT.md").exists()
         assert (output / "docs" / "architecture.md").exists()
         assert (output / "docs" / "api-conventions.md").exists()
@@ -157,6 +158,8 @@ class TestNextjsFrontend:
     def test_generates_all_files(self, tmp_path: Path):
         output = _generate(tmp_path, "nextjs-frontend", _NEXTJS_DEFAULTS)
         assert (output / "README.md").exists()
+        assert (output / "package.json").exists()
+        assert (output / "tsconfig.json").exists()
         assert (output / "AI_CONTEXT.md").exists()
         assert (output / "docs" / "architecture.md").exists()
         assert (output / "docs" / "component-guide.md").exists()
@@ -296,6 +299,10 @@ class TestSymfonyNextjsFullstack:
     def test_generates_all_files(self, tmp_path: Path):
         output = _generate(tmp_path, "symfony-nextjs", _FULLSTACK_DEFAULTS)
         assert (output / "README.md").exists()
+        assert (output / "package.json").exists()
+        assert (output / "pnpm-workspace.yaml").exists()
+        assert (output / "apps" / "web" / "package.json").exists()
+        assert (output / "apps" / "api" / "composer.json").exists()
         assert (output / "AI_CONTEXT.md").exists()
         assert (output / "docs" / "architecture.md").exists()
         assert (output / "docs" / "api-contract.md").exists()

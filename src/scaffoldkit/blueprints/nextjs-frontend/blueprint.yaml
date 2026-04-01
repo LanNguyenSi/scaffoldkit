@@ -163,6 +163,13 @@ templates:
   - source: README.md.j2
     target: README.md
 
+  - source: package.json.j2
+    target: package.json
+
+  - source: tsconfig.json.j2
+    target: tsconfig.json
+    condition: is_typescript
+
   - source: .dockerignore.j2
     target: .dockerignore
     condition: use_docker

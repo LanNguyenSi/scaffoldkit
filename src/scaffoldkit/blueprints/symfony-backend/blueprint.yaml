@@ -131,6 +131,39 @@ templates:
   - source: README.md.j2
     target: README.md
 
+  - source: composer.json.j2
+    target: composer.json
+
+  - source: .env.j2
+    target: .env
+
+  - source: bin/console.j2
+    target: bin/console
+
+  - source: public/index.php.j2
+    target: public/index.php
+
+  - source: src/Kernel.php.j2
+    target: src/Kernel.php
+
+  - source: src/Controller/HealthController.php.j2
+    target: src/Controller/HealthController.php
+
+  - source: config/bundles.php.j2
+    target: config/bundles.php
+
+  - source: config/routes.yaml.j2
+    target: config/routes.yaml
+
+  - source: config/services.yaml.j2
+    target: config/services.yaml
+
+  - source: config/packages/framework.yaml.j2
+    target: config/packages/framework.yaml
+
+  - source: config/packages/doctrine.yaml.j2
+    target: config/packages/doctrine.yaml
+
   - source: .dockerignore.j2
     target: .dockerignore
     condition: use_docker
@@ -171,6 +204,7 @@ static_files:
     target: .gitignore
 
 directories:
+  - bin
   - src
   - src/Entity
   - src/Repository
