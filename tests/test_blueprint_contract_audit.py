@@ -39,7 +39,10 @@ def _audit_flag_contract_gaps() -> set[tuple[str, str]]:
                 continue
 
             targets = _manifest_entries_for_flag(blueprint_dir, flag)
-            if not any(any(marker in target.lower() for marker in required_markers) for target in targets):
+            has_matching_target = any(
+                any(marker in target.lower() for marker in required_markers) for target in targets
+            )
+            if not has_matching_target:
                 gaps.add((blueprint_dir.name, flag))
 
     return gaps

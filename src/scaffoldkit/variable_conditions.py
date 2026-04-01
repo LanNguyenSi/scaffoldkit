@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import TYPE_CHECKING, Any
 
-from scaffoldkit.models import Blueprint, BlueprintVariable
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from scaffoldkit.models import Blueprint, BlueprintVariable
 
 
 def variable_is_active(

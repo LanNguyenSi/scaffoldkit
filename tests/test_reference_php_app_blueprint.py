@@ -62,7 +62,10 @@ class TestReferencePhpAppBlueprint:
         pipeline = (output / ".github" / "workflows" / "pipeline.yml").read_text()
         assert "uses: ./.github/actions/secret-scan" in pipeline
         assert "${{ github.event.repository.name }}" in pipeline
-        assert "REGISTRY_IMAGE: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}" in pipeline
+        assert (
+            "REGISTRY_IMAGE: ghcr.io/${{ github.repository_owner }}/"
+            "${{ github.event.repository.name }}"
+        ) in pipeline
         assert "permissions:" in pipeline
         assert "packages: write" in pipeline
         assert "id-token: write" in pipeline
