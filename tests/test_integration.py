@@ -133,6 +133,20 @@ class TestFullGeneration:
         arch_with = (output_with / "docs" / "architecture.md").read_text()
         assert "Docker" in arch_with
 
+    def test_generates_docker_and_ci_contracts(self, tmp_path: Path):
+        output = _generate_saas_dashboard(tmp_path, use_docker=True, use_ci=True)
+        assert (output / ".dockerignore").exists()
+        assert (output / "Dockerfile").exists()
+        assert (output / "docker-compose.yml").exists()
+        assert (output / ".github" / "workflows" / "ci.yml").exists()
+
+    def test_skips_docker_and_ci_contracts_when_disabled(self, tmp_path: Path):
+        output = _generate_saas_dashboard(tmp_path, use_docker=False, use_ci=False)
+        assert not (output / ".dockerignore").exists()
+        assert not (output / "Dockerfile").exists()
+        assert not (output / "docker-compose.yml").exists()
+        assert not (output / ".github" / "workflows" / "ci.yml").exists()
+
     def test_page_templates_reference_design_style(self, tmp_path: Path):
         output = _generate_saas_dashboard(tmp_path, design_style="playful-modern")
         dashboard = (output / "docs" / "page-templates" / "dashboard-page.md").read_text()

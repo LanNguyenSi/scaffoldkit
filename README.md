@@ -132,6 +132,39 @@ This launches the interactive TUI:
 scaffoldkit new saas-dashboard --target ./my-project
 ```
 
+### Non-Interactive Mode
+
+You can scaffold without the TUI by passing variables explicitly:
+
+```bash
+scaffoldkit new symfony-backend \
+  --target ./my-symfony-app \
+  --non-interactive \
+  --var project_name=my-symfony-app \
+  --var display_name="My Symfony App" \
+  --var description="A Symfony-based API backend" \
+  --var php_version=8.3 \
+  --var symfony_version=7.2 \
+  --var api_style=api-platform \
+  --var database=postgresql \
+  --var use_ddd=true \
+  --var use_cqrs=true \
+  --var use_auth=false \
+  --var use_docker=true \
+  --var use_ci=true \
+  --var use_rabbitmq=false \
+  --var use_redis=false \
+  --var test_strategy=phpunit-only \
+  --var ai_context=true
+```
+
+Notes:
+
+- `--non-interactive` fills in omitted values from blueprint defaults
+- required variables without defaults still fail fast
+- conditional variables are skipped automatically when their parent flag is disabled
+- boolean values accept `true` / `false`, `yes` / `no`, and `1` / `0`
+
 ### From agent-planforge
 
 If you already have a `scaffoldkit-input.json` export from `agent-planforge`, generate directly from it:
@@ -151,6 +184,8 @@ Options:
   -t, --target PATH        Target directory
   -n, --dry-run            Preview without writing files
   --overwrite              Overwrite existing files
+  --var KEY=VALUE          Set blueprint variable (repeatable)
+  --non-interactive        Use provided values and blueprint defaults without prompting
   -b, --blueprints-dir     Custom blueprints directory
 ```
 

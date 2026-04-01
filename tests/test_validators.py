@@ -12,6 +12,10 @@ def _load_saas():
     return load_blueprint(BLUEPRINTS_DIR / "saas-dashboard")
 
 
+def _load_rest_api():
+    return load_blueprint(BLUEPRINTS_DIR / "rest-api")
+
+
 def _valid_inputs():
     return {
         "project_name": "my-app",
@@ -55,3 +59,22 @@ class TestValidateVariables:
         inputs["use_auth"] = "not-a-bool"
         errors = validate_variables(bp, inputs)
         assert any("use_auth" in e for e in errors)
+
+    def test_skips_inactive_conditional_variable_validation(self):
+        bp = _load_rest_api()
+        inputs = {
+            "project_name": "test-api",
+            "display_name": "Test API",
+            "description": "A test API",
+            "framework": "fastapi",
+            "database": "postgresql",
+            "use_auth": False,
+            "use_docker": True,
+            "use_ci": True,
+            "use_openapi": True,
+            "test_strategy": "unit-and-integration",
+            "ai_context": True,
+            "auth_strategy": "not-a-real-strategy",
+        }
+        errors = validate_variables(bp, inputs)
+        assert all("auth_strategy" not in error for error in errors)

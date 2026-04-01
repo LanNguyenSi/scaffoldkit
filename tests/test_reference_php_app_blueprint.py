@@ -13,6 +13,7 @@ _DEFAULTS = {
     "display_name": "Demo Reference App",
     "description": "A generated reference repository scaffold",
     "domain_suffix": "internal.test",
+    "use_docker": True,
     "use_ci": True,
     "ai_context": True,
 }
@@ -37,6 +38,7 @@ class TestReferencePhpAppBlueprint:
     def test_loads(self):
         bp = load_blueprint(BLUEPRINTS_DIR / "reference-php-app")
         assert bp.name == "reference-php-app"
+        assert any(var.name == "use_docker" for var in bp.variables)
         assert len(bp.static_files) >= 20
 
     def test_generates_reference_scaffold(self, tmp_path: Path):
@@ -58,13 +60,25 @@ class TestReferencePhpAppBlueprint:
         assert "DOMAIN_SUFFIX=internal.test" in env_dist
 
         pipeline = (output / ".github" / "workflows" / "pipeline.yml").read_text()
-        assert "uses: demo-reference-app/.github/actions/secret-scan" in pipeline
-        assert "${{ github.repository }}" in pipeline
+        assert "uses: ./.github/actions/secret-scan" in pipeline
+        assert "${{ github.event.repository.name }}" in pipeline
+        assert "REGISTRY_IMAGE: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}" in pipeline
+        assert "permissions:" in pipeline
+        assert "packages: write" in pipeline
+        assert "id-token: write" in pipeline
+        assert "artifact-name: ${{ env.CI_ARTIFACT_NAME }}" in pipeline
+        assert "artifact-name: ${{ env.PROD_ARTIFACT_NAME }}" in pipeline
+        assert "startsWith(github.ref_name, 'release/')" in pipeline
+        assert "startsWith(github.ref, 'refs/tags/')" in pipeline
+        assert "uses: demo-reference-app/.github/actions/secret-scan" not in pipeline
+        assert "github.ref_name == 'release/*'" not in pipeline
+        assert "github.ref == 'refs/tags/*'" not in pipeline
         assert (
             "with:\n"
-            "          image-name: ${{ env.CI_IMAGE_NAME }}\n"
-            "          dockerfile: build/app/Dockerfile\n"
-            "          context: ."
+"          image-name: ${{ env.CI_IMAGE_NAME }}\n"
+"          artifact-name: ${{ env.CI_ARTIFACT_NAME }}\n"
+"          dockerfile: build/app/Dockerfile\n"
+"          context: ."
         ) in pipeline
         assert "image-name: ${{ env.CI_IMAGE_NAME }}          dockerfile:" not in pipeline
         assert "#      target_overlay: test" in pipeline
@@ -73,6 +87,13 @@ class TestReferencePhpAppBlueprint:
         assert "needs: [ lint, test-unit, test-integration, license-check, cve-check ]" in pipeline
 
     def test_skips_optional_files_when_disabled(self, tmp_path: Path):
-        output = _generate(tmp_path, {**_DEFAULTS, "use_ci": False, "ai_context": False})
+        output = _generate(
+            tmp_path,
+            {**_DEFAULTS, "use_docker": False, "use_ci": False, "ai_context": False},
+        )
         assert not (output / ".github" / "workflows" / "pipeline.yml").exists()
+        assert not (output / ".github" / "actions").exists()
+        assert not (output / "docker-compose.yml").exists()
+        assert not (output / "build" / "app" / "Dockerfile").exists()
+        assert not (output / "build" / "nginx" / "Dockerfile").exists()
         assert not (output / "AI_CONTEXT.md").exists()

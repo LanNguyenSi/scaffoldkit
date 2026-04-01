@@ -4,6 +4,9 @@ inputs:
   image-name:
     description: Image name
     required: true
+  artifact-name:
+    description: Prefix used for the cached CI image artifact
+    required: true
   make-command:
     description: Make command to run linting
     required: true
@@ -13,13 +16,13 @@ runs:
     - name: Download CI image cache
       uses: actions/download-artifact@v4
       with:
-        name: ${{ inputs.image-name }}-${{ github.sha }}-cache
+        name: ${{ inputs.artifact-name }}-${{ github.sha }}-cache
         path: /tmp
 
     - name: Restore CI image
       shell: bash
       run: |
-        docker load --input "/tmp/${{ inputs.image-name }}-${{ github.sha }}.tar"
+        docker load --input "/tmp/${{ inputs.artifact-name }}-${{ github.sha }}.tar"
 
     - name: Run Make Command
       shell: bash

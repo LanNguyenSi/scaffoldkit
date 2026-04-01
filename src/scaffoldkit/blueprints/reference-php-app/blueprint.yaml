@@ -38,6 +38,11 @@ variables:
     default: "localhost"
     required: true
 
+  - name: use_docker
+    description: "Include Docker build files and docker-compose configuration"
+    type: boolean
+    default: true
+
   - name: use_ci
     description: "Include the reference GitHub Actions pipeline"
     type: boolean
@@ -69,27 +74,35 @@ templates:
 static_files:
   - source: .github/actions/build-ci-image/action.yml
     target: .github/actions/build-ci-image/action.yml
+    condition: use_ci
 
   - source: .github/actions/build-prod-image/action.yml
     target: .github/actions/build-prod-image/action.yml
+    condition: use_ci
 
   - source: .github/actions/cleanup-cache/action.yml
     target: .github/actions/cleanup-cache/action.yml
+    condition: use_ci
 
   - source: .github/actions/cve-check/action.yml
     target: .github/actions/cve-check/action.yml
+    condition: use_ci
 
   - source: .github/actions/license-check/action.yml
     target: .github/actions/license-check/action.yml
+    condition: use_ci
 
   - source: .github/actions/make-command/action.yml
     target: .github/actions/make-command/action.yml
+    condition: use_ci
 
   - source: .github/actions/secret-scan/action.yml
     target: .github/actions/secret-scan/action.yml
+    condition: use_ci
 
   - source: .github/actions/tag-image/action.yml
     target: .github/actions/tag-image/action.yml
+    condition: use_ci
 
   - source: .gitignore
     target: .gitignore
@@ -105,24 +118,31 @@ static_files:
 
   - source: build/app/Dockerfile
     target: build/app/Dockerfile
+    condition: use_docker
 
   - source: build/app/php.dev.ini
     target: build/app/php.dev.ini
+    condition: use_docker
 
   - source: build/app/php.prod.ini
     target: build/app/php.prod.ini
+    condition: use_docker
 
   - source: build/nginx/Dockerfile
     target: build/nginx/Dockerfile
+    condition: use_docker
 
   - source: build/nginx/default.dev.conf
     target: build/nginx/default.dev.conf
+    condition: use_docker
 
   - source: build/nginx/default.prod.conf
     target: build/nginx/default.prod.conf
+    condition: use_docker
 
   - source: docker-compose.yml
     target: docker-compose.yml
+    condition: use_docker
 
   - source: docs/img.png
     target: docs/img.png

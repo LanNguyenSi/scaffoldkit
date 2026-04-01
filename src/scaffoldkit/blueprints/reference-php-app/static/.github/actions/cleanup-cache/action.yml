@@ -1,8 +1,8 @@
 name: Cleanup CI Cache
 description: Removes all artifacts created only for the CI
 inputs:
-  image-name:
-    description: Image name
+  artifact-name:
+    description: Prefix used for the CI cache and SBOM artifacts
     required: true
 runs:
   using: composite
@@ -10,11 +10,11 @@ runs:
     - name: Remove image artifact
       uses: geekyeggo/delete-artifact@v4
       with:
-        name: ${{ inputs.image-name }}-${{ github.sha }}-cache
+        name: ${{ inputs.artifact-name }}-${{ github.sha }}-cache
         failOnError: false
 
     - name: Remove SBOM artifact
       uses: geekyeggo/delete-artifact@v4
       with:
-        name: ${{ inputs.image-name }}-${{ github.sha }}-sbom-cache
+        name: ${{ inputs.artifact-name }}-${{ github.sha }}-sbom-cache
         failOnError: false

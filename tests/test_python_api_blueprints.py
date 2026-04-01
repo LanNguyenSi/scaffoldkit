@@ -92,6 +92,24 @@ class TestFastapiBackendBlueprint:
         arch = (output / "docs" / "architecture.md").read_text()
         assert "background" in arch.lower() or "workers" in arch.lower()
 
+    def test_generates_docker_contracts(self, tmp_path: Path):
+        output = _generate(tmp_path, "fastapi-backend", _FASTAPI_DEFAULTS)
+        assert (output / ".dockerignore").exists()
+        assert (output / "Dockerfile").exists()
+        assert (output / "docker-compose.yml").exists()
+
+        compose = (output / "docker-compose.yml").read_text()
+        assert "dockerfile: Dockerfile" in compose
+        assert "db:" in compose
+
+    def test_skips_docker_contracts_when_disabled(self, tmp_path: Path):
+        output = _generate(
+            tmp_path, "fastapi-backend", {**_FASTAPI_DEFAULTS, "use_docker": False}
+        )
+        assert not (output / ".dockerignore").exists()
+        assert not (output / "Dockerfile").exists()
+        assert not (output / "docker-compose.yml").exists()
+
 
 _DJANGO_DEFAULTS = {
     "project_name": "test-django-api",
@@ -147,6 +165,22 @@ class TestDjangoDrfBlueprint:
         )
         arch = (output / "docs" / "architecture.md").read_text()
         assert "celery" in arch.lower() or "channels" in arch.lower()
+
+    def test_generates_docker_contracts(self, tmp_path: Path):
+        output = _generate(tmp_path, "django-drf", _DJANGO_DEFAULTS)
+        assert (output / ".dockerignore").exists()
+        assert (output / "Dockerfile").exists()
+        assert (output / "docker-compose.yml").exists()
+
+        compose = (output / "docker-compose.yml").read_text()
+        assert "dockerfile: Dockerfile" in compose
+        assert "db:" in compose or "DATABASE_URL: sqlite" in compose
+
+    def test_skips_docker_contracts_when_disabled(self, tmp_path: Path):
+        output = _generate(tmp_path, "django-drf", {**_DJANGO_DEFAULTS, "use_docker": False})
+        assert not (output / ".dockerignore").exists()
+        assert not (output / "Dockerfile").exists()
+        assert not (output / "docker-compose.yml").exists()
 
 
 class TestPlanforgeImportHintsForPythonBackends:

@@ -4,6 +4,9 @@ inputs:
   image-name:
     description: Base image name
     required: true
+  artifact-name:
+    description: Prefix used for cache and SBOM artifacts
+    required: true
   dockerfile:
     description: Path to Dockerfile
     required: true
@@ -26,8 +29,8 @@ runs:
         push: false
         target: dev
         outputs: |
-          type=docker,dest=/tmp/${{ inputs.image-name }}-${{ github.sha }}.tar
-          type=sbom,dest=/tmp/${{inputs.image-name}}-${{ github.sha }}.sbom
+          type=docker,dest=/tmp/${{ inputs.artifact-name }}-${{ github.sha }}.tar
+          type=sbom,dest=/tmp/${{ inputs.artifact-name }}-${{ github.sha }}.sbom
         tags: ${{ inputs.image-name }}:${{ github.sha }}
         sbom: true
         provenance: mode=max
@@ -35,14 +38,14 @@ runs:
     - name: Upload CI image cache
       uses: actions/upload-artifact@v4
       with:
-        name: ${{inputs.image-name}}-${{ github.sha }}-cache
-        path: /tmp/${{inputs.image-name}}-${{ github.sha }}.tar
+        name: ${{ inputs.artifact-name }}-${{ github.sha }}-cache
+        path: /tmp/${{ inputs.artifact-name }}-${{ github.sha }}.tar
         retention-days: 7
         compression-level: 6
 
     - name: Upload CI SBOM
       uses: actions/upload-artifact@v4
       with:
-        name: ${{inputs.image-name}}-${{ github.sha }}-sbom-cache
-        path: /tmp/${{inputs.image-name}}-${{ github.sha }}.sbom
+        name: ${{ inputs.artifact-name }}-${{ github.sha }}-sbom-cache
+        path: /tmp/${{ inputs.artifact-name }}-${{ github.sha }}.sbom
         retention-days: 7

@@ -12,6 +12,9 @@
 {% if use_docker %}- **Deployment:** Docker + Traefik{% endif %}
 {% if use_email %}- **Email:** Nodemailer{% endif %}
 {% if use_analytics %}- **Charts:** Recharts{% endif %}
+{% if use_csv_export %}- **Exports:** CSV export flows included{% endif %}
+{% if use_waitlist %}- **Growth:** Waitlist management included{% endif %}
+{% if use_og_tags %}- **SEO:** Open Graph tags configured{% endif %}
 
 ## Quick Start
 
@@ -40,6 +43,18 @@ npm run dev
 docker compose -f docker-compose.traefik.yml build --no-cache app
 docker compose -f docker-compose.traefik.yml up -d
 ```
+{% endif %}
+
+## Feature Flags
+
+{% if use_csv_export %}
+- CSV export is part of the product surface. Keep export jobs async when datasets grow.
+{% endif %}
+{% if use_waitlist %}
+- Waitlist acquisition flows are part of the funnel. Model invite and approval states explicitly.
+{% endif %}
+{% if use_og_tags %}
+- Open Graph metadata is expected for public pages so links render with a title, description, and preview image.
 {% endif %}
 
 ## Project Structure

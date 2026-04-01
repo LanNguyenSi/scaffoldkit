@@ -4,6 +4,9 @@ inputs:
   image-name:
     description: Base image name
     required: true
+  artifact-name:
+    description: Prefix used for the production SBOM artifact
+    required: true
   dockerfile:
     description: Path to Dockerfile
     required: true
@@ -35,7 +38,7 @@ runs:
         file: ${{ inputs.dockerfile }}
         push: true
         target: prod
-        outputs: type=sbom,dest=/tmp/${{ inputs.image-name }}-${{ github.sha }}.sbom
+        outputs: type=sbom,dest=/tmp/${{ inputs.artifact-name }}-${{ github.sha }}.sbom
         tags: |
           ${{ inputs.image-name }}:${{ github.sha }}
           ${{ inputs.image-name }}:latest
@@ -45,6 +48,6 @@ runs:
     - name: Upload production SBOM
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ inputs.image-name }}-${{ github.sha }}-sbom-cache
-        path: /tmp/${{ inputs.image-name }}-${{ github.sha }}.sbom
+        name: ${{ inputs.artifact-name }}-${{ github.sha }}-sbom-cache
+        path: /tmp/${{ inputs.artifact-name }}-${{ github.sha }}.sbom
         retention-days: 1

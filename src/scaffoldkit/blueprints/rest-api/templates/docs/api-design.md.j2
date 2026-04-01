@@ -375,7 +375,7 @@ See [Ways of Working](ways-of-working.md) for the full definition of a breaking 
 
 ## Rate Limiting
 
-Rate limits are enforced per API key{% if auth_strategy == "jwt" %} or user{% endif %}.
+Rate limits are enforced per API key{% if use_auth and auth_strategy == "jwt" %} or user{% endif %}.
 
 | Tier | Requests per minute |
 |------|---------------------|
@@ -403,7 +403,7 @@ Idempotency-Key: client-generated-uuid-here
 
 - The server stores the key and the response for 24 hours
 - If the same key is sent again within 24 hours, the original response is returned without re-executing the operation
-- Keys are scoped per authenticated user{% if auth_strategy == "api-key" %} or API key{% endif %}
+- Keys are scoped per authenticated user{% if use_auth and auth_strategy == "api-key" %} or API key{% endif %}
 
 ## CORS
 
