@@ -100,7 +100,6 @@ def generate(context: GenerationContext) -> GenerationResult:
         env = create_jinja_env(template_dir)
         for entry in blueprint.templates:
             if entry.condition and not tpl_context.get(entry.condition):
-                result.files_skipped.append(entry.target)
                 continue
 
             target_rel = render_string(entry.target, tpl_context)
@@ -126,7 +125,6 @@ def generate(context: GenerationContext) -> GenerationResult:
     if static_dir.is_dir():
         for entry in blueprint.static_files:
             if entry.condition and not tpl_context.get(entry.condition):
-                result.files_skipped.append(entry.target)
                 continue
 
             target_rel = render_string(entry.target, tpl_context)

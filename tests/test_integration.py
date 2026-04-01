@@ -146,8 +146,8 @@ class TestFullGeneration:
         workflow = (output / ".github" / "workflows" / "ci.yml").read_text()
 
         assert "apps/web && npm install" in dockerfile
-        assert 'APP_ROLE: web' in compose
-        assert 'APP_ROLE: api' in compose
+        assert "APP_ROLE: web" in compose
+        assert "APP_ROLE: api" in compose
         assert "Set up Node" in workflow
 
     def test_skips_docker_and_ci_contracts_when_disabled(self, tmp_path: Path):
@@ -276,9 +276,7 @@ class TestStackVariations:
         assert (output / "Gemfile").exists()
         assert (output / "apps" / "api" / ".env.example").exists()
         assert (output / "apps" / "api" / "config.ru").exists()
-        assert (
-            output / "apps" / "web" / "app" / "views" / "dashboard" / "index.html.erb"
-        ).exists()
+        assert (output / "apps" / "web" / "app" / "views" / "dashboard" / "index.html.erb").exists()
 
         gemfile = (output / "Gemfile").read_text()
         routes = (output / "apps" / "api" / "config" / "routes.rb").read_text()

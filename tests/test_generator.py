@@ -112,7 +112,7 @@ class TestGenerate:
         result = generate(ctx)
         assert result.success
         assert not (tmp_path / "output" / "AI_CONTEXT.md").exists()
-        assert "AI_CONTEXT.md" in result.files_skipped
+        assert "AI_CONTEXT.md" not in result.files_created
 
     def test_validation_error_for_missing_vars(self, tmp_path):
         ctx = _context(tmp_path, variables={})
