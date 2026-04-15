@@ -6,6 +6,15 @@ AI-aided project scaffolding tool with declarative blueprints.
 
 ScaffoldKit generates complete project skeletons from declarative blueprints - including project structure, documentation, ways-of-working guides, page templates, design references, and AI context files for downstream agent workflows.
 
+## Used by
+
+ScaffoldKit is used in production as the scaffolding engine for two sibling tools in the Project OS pipeline:
+
+- **[project-forge](https://github.com/LanNguyenSi/project-forge)** — end-to-end project bootstrapper that invokes ScaffoldKit for blueprint generation.
+- **[agent-planforge](https://github.com/LanNguyenSi/agent-planforge)** — planning tool whose `scaffoldkit-input.json` export feeds directly into `scaffoldkit from-planforge`.
+
+Both depend on this repo in production; changes to blueprint contracts here ripple into those consumers.
+
 ## Installation
 
 No Python installation required. Choose whichever method fits your setup.
