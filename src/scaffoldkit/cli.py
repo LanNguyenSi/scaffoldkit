@@ -80,6 +80,7 @@ def new(
     non_interactive: Annotated[
         bool, typer.Option("--non-interactive", help="Non-interactive mode (use defaults)")
     ] = False,
+    yes: Annotated[bool, typer.Option("--yes", "-y", help="Skip the confirmation prompt")] = False,
 ) -> None:
     """Generate a new project from a blueprint."""
     bp_dir = blueprints_dir or get_blueprints_dir()
@@ -137,8 +138,8 @@ def new(
         overwrite=overwrite,
     )
 
-    # Confirm
-    if not confirm_generation(context):
+    # Confirm (skipped in non-interactive or --yes mode)
+    if not (non_interactive or yes) and not confirm_generation(context):
         console.print("[yellow]Aborted.[/yellow]")
         raise typer.Exit(0)
 
