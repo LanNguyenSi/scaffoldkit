@@ -33,6 +33,56 @@ class TestNewCommand:
         assert result.exit_code == 0
         assert "blueprint" in result.output.lower()
 
+    def test_non_interactive_skips_confirmation(self, tmp_path):
+        target = tmp_path / "sk-noni"
+        result = runner.invoke(
+            app,
+            [
+                "new",
+                "cli-tool",
+                "--target",
+                str(target),
+                "--non-interactive",
+                "--no-install",
+                "--var",
+                "project_name=sk-noni",
+                "--var",
+                "display_name=SK NonI",
+                "--var",
+                "description=non-interactive smoke",
+                "--var",
+                "ai_context=true",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert (target / "README.md").exists()
+        assert "Aborted" not in result.output
+
+    def test_yes_flag_skips_confirmation(self, tmp_path):
+        target = tmp_path / "sk-yes"
+        result = runner.invoke(
+            app,
+            [
+                "new",
+                "cli-tool",
+                "--target",
+                str(target),
+                "--yes",
+                "--non-interactive",
+                "--no-install",
+                "--var",
+                "project_name=sk-yes",
+                "--var",
+                "display_name=SK Yes",
+                "--var",
+                "description=yes flag smoke",
+                "--var",
+                "ai_context=true",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert (target / "README.md").exists()
+
 
 class TestFromPlanforgeCommand:
     def test_generates_project_from_planforge_export(self, tmp_path):

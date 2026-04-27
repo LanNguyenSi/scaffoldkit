@@ -195,6 +195,7 @@ Options:
   --overwrite              Overwrite existing files
   --var KEY=VALUE          Set blueprint variable (repeatable)
   --non-interactive        Use provided values and blueprint defaults without prompting
+  -y, --yes                Skip the confirmation prompt
   -b, --blueprints-dir     Custom blueprints directory
 ```
 
