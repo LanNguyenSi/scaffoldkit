@@ -22,7 +22,7 @@ No Python installation required. Choose whichever method fits your setup.
 ### Option A: One-line installer (recommended)
 
 ```bash
-git clone <repo-url> scaffoldkit && cd scaffoldkit
+git clone https://github.com/LanNguyenSi/scaffoldkit.git scaffoldkit && cd scaffoldkit
 ./install.sh
 ```
 
@@ -31,7 +31,7 @@ This installs [uv](https://docs.astral.sh/uv/) (if not present), which then hand
 ### Option B: Docker (no Python needed at all)
 
 ```bash
-git clone <repo-url> scaffoldkit && cd scaffoldkit
+git clone https://github.com/LanNguyenSi/scaffoldkit.git scaffoldkit && cd scaffoldkit
 ./install.sh --docker
 ```
 
@@ -64,7 +64,7 @@ python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 
 # Install scaffoldkit
-git clone <repo-url> scaffoldkit
+git clone https://github.com/LanNguyenSi/scaffoldkit.git scaffoldkit
 cd scaffoldkit
 pipx install .
 
@@ -82,7 +82,7 @@ scaffoldkit --help
 
 ```bash
 # Clone repository
-git clone <repo-url> scaffoldkit
+git clone https://github.com/LanNguyenSi/scaffoldkit.git scaffoldkit
 cd scaffoldkit
 
 # Create virtual environment
