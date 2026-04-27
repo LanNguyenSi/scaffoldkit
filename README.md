@@ -452,6 +452,10 @@ GitHub Actions runs on every push and PR to `main`:
 - **Test** - pytest on Python 3.11, 3.12, 3.13
 - **Build** - package build + install verification
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, coding standards, and PR process.
