@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import subprocess
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -36,6 +37,35 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 console = Console()
+
+
+def _resolve_version() -> str:
+    try:
+        return version("scaffoldkit")
+    except PackageNotFoundError:
+        return "0.0.0+unknown"
+
+
+def _version_callback(value: bool) -> None:
+    if value:
+        typer.echo(f"scaffoldkit {_resolve_version()}")
+        raise typer.Exit(0)
+
+
+@app.callback()
+def _main(
+    _version: Annotated[
+        bool,
+        typer.Option(
+            "--version",
+            "-V",
+            callback=_version_callback,
+            is_eager=True,
+            help="Show the scaffoldkit version and exit.",
+        ),
+    ] = False,
+) -> None:
+    """AI-aided project scaffolding tool."""
 
 
 def _run_npm_install(target: Path) -> None:
