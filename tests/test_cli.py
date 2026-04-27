@@ -1,12 +1,25 @@
 """Tests for CLI commands."""
 
 import json
+from importlib.metadata import version
 
 from typer.testing import CliRunner
 
 from scaffoldkit.cli import app
 
 runner = CliRunner()
+
+
+class TestVersionFlag:
+    def test_long_flag_prints_package_version(self):
+        result = runner.invoke(app, ["--version"])
+        assert result.exit_code == 0
+        assert result.output.strip() == f"scaffoldkit {version('scaffoldkit')}"
+
+    def test_short_flag_prints_package_version(self):
+        result = runner.invoke(app, ["-V"])
+        assert result.exit_code == 0
+        assert result.output.strip() == f"scaffoldkit {version('scaffoldkit')}"
 
 
 class TestListCommand:
