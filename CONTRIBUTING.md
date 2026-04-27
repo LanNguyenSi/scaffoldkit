@@ -6,7 +6,7 @@ Thank you for your interest in contributing to ScaffoldKit! This document explai
 
 ```bash
 # Clone the repository
-git clone <repo-url>
+git clone https://github.com/LanNguyenSi/scaffoldkit.git
 cd scaffoldkit
 
 # Create virtual environment and install with dev dependencies
