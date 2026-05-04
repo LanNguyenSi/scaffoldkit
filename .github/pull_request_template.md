@@ -10,6 +10,7 @@
 
 - [ ] `pytest tests/`
 - [ ] `ruff check src/ tests/`
+- [ ] `ruff format --check src/ tests/` (CI also enforces this)
 - [ ] For blueprint changes: generated a sample project and verified output
 - [ ] Manual smoke check: <!-- command or scenario -->
 
