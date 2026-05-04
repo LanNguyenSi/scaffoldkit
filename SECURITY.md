@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-Active development is on `master`. Only the latest published release on PyPI is supported.
+Active development is on `master`. Once published to PyPI, only the latest release will be supported; until then, `master` is the supported state.
 
 scaffoldkit generates project skeletons from declarative blueprints; vulnerabilities (path traversal in templates, code injection via blueprint content, supply-chain risk in generated dependencies) are treated as serious.
 
