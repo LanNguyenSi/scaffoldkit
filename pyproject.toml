@@ -9,7 +9,7 @@ description = "AI-aided project scaffolding tool with declarative blueprints"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
-authors = [{ name = "ScaffoldKit Contributors" }]
+authors = [{ name = "Lan Nguyen Si", email = "contact@lan-nguyen-si.de" }]
 keywords = ["scaffolding", "project-generator", "blueprints", "templates", "cli"]
 classifiers = [
     "Development Status :: 3 - Alpha",
