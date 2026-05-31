@@ -201,6 +201,18 @@ def from_planforge(
     no_install: Annotated[
         bool, typer.Option("--no-install", help="Skip npm install after generation")
     ] = False,
+    no_ai_context: Annotated[
+        bool,
+        typer.Option(
+            "--no-ai-context",
+            help=(
+                "Do not emit the blueprint's AI-context files (the .ai/ tree and "
+                "AI_CONTEXT.md). Use when the caller already provides its own agent "
+                "context, e.g. the agent-planforge container, whose .ai/ would "
+                "otherwise be clobbered by --overwrite."
+            ),
+        ),
+    ] = False,
     blueprints_dir: Annotated[
         Path | None, typer.Option("--blueprints-dir", "-b", help="Custom blueprints dir")
     ] = None,
@@ -246,6 +258,13 @@ def from_planforge(
         console.print(f"[yellow]Planforge input warning: {warning}[/yellow]")
 
     variables = build_variables_from_planforge(export_data, blueprint)
+
+    # The planforge container writes its own canonical root .ai/ tree before invoking
+    # from-planforge, so it owns the AI context. --no-ai-context lets such a caller
+    # suppress scaffoldkit's ai_context-gated files (the .ai/ tree and AI_CONTEXT.md)
+    # instead of having --overwrite silently clobber the caller's .ai/.
+    if no_ai_context and "ai_context" in variables:
+        variables["ai_context"] = False
 
     resolved_target = (
         target.resolve() if target else (Path.cwd() / default_target_name(export_data)).resolve()

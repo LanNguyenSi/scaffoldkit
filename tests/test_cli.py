@@ -135,6 +135,97 @@ class TestFromPlanforgeCommand:
         assert (target / "package.json").exists()
         assert (target / ".ai" / "AGENTS.md").exists()
 
+    def test_no_ai_context_suppresses_ai_files_but_keeps_scaffold(self, tmp_path):
+        export_path = tmp_path / "scaffoldkit-input.json"
+        target = tmp_path / "generated-app"
+        export_path.write_text(
+            json.dumps(
+                {
+                    "version": "1.1",
+                    "exportedBy": "agent-planforge",
+                    "projectName": "Ops Console",
+                    "summary": "Internal operations dashboard with audit-aware workflows.",
+                    "blueprint": "nextjs-fullstack",
+                    "blueprintCandidates": ["nextjs-fullstack", "saas-dashboard"],
+                    "features": ["analytics dashboard", "user authentication"],
+                    "constraints": ["must be dockerized", "prefer TypeScript"],
+                    "architecture": {"shape": "modular monolith"},
+                    "stack": {"hint": "TypeScript web application", "dataStore": "relational"},
+                    "suggestedVariables": {
+                        "db_provider": "sqlite",
+                        "use_docker": True,
+                        "use_analytics": True,
+                        "auth_strategy": "jwt",
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        result = runner.invoke(
+            app,
+            [
+                "from-planforge",
+                str(export_path),
+                "--target",
+                str(target),
+                "--no-install",
+                "--no-ai-context",
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        # AI-context files are suppressed: the caller (e.g. planforge) owns .ai/.
+        # (test_generates_project_from_planforge_export is the negative control:
+        # the same export WITHOUT the flag emits .ai/AGENTS.md.)
+        assert not (target / ".ai" / "AGENTS.md").exists()
+        assert not (target / ".ai" / "ARCHITECTURE.md").exists()
+        assert not (target / "AI_CONTEXT.md").exists()
+        # The rest of the scaffold is unaffected by the flag.
+        assert (target / "README.md").exists()
+        assert (target / "package.json").exists()
+
+    def test_no_ai_context_preserves_caller_ai_files_under_overwrite(self, tmp_path):
+        # Regression for the agent-planforge contract: planforge writes its own
+        # .ai/ into the target first, then invokes from-planforge --overwrite. With
+        # --no-ai-context, scaffoldkit must NOT clobber the caller's .ai/ files.
+        export_path = tmp_path / "scaffoldkit-input.json"
+        target = tmp_path / "generated-app"
+        (target / ".ai").mkdir(parents=True)
+        sentinel = target / ".ai" / "AGENTS.md"
+        sentinel.write_text("PLANFORGE-ORIGINAL", encoding="utf-8")
+        export_path.write_text(
+            json.dumps(
+                {
+                    "version": "1.1",
+                    "exportedBy": "agent-planforge",
+                    "projectName": "Ops Console",
+                    "summary": "Internal operations dashboard.",
+                    "blueprint": "nextjs-fullstack",
+                    "stack": {"hint": "TypeScript web application", "dataStore": "relational"},
+                    "suggestedVariables": {"db_provider": "sqlite"},
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        result = runner.invoke(
+            app,
+            [
+                "from-planforge",
+                str(export_path),
+                "--target",
+                str(target),
+                "--no-install",
+                "--overwrite",
+                "--no-ai-context",
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        # The caller's pre-existing .ai/ file survives despite --overwrite.
+        assert sentinel.read_text(encoding="utf-8") == "PLANFORGE-ORIGINAL"
+
     def test_falls_back_to_candidate_blueprint_when_primary_is_missing(self, tmp_path):
         export_path = tmp_path / "scaffoldkit-input.json"
         target = tmp_path / "generated-app"
