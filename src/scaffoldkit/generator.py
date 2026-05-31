@@ -2,13 +2,31 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from scaffoldkit.filesystem import copy_file, ensure_directory, write_file
 from scaffoldkit.models import Blueprint, GenerationContext, GenerationResult
 from scaffoldkit.renderer import create_jinja_env, render_string, render_template
 from scaffoldkit.validators import validate_variables
 from scaffoldkit.variable_conditions import prune_inactive_variables
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+
+def _safe_join(base: Path, rel: str) -> Path:
+    """Join a rendered relative path onto base, refusing anything that escapes base.
+
+    Rendered values come from untrusted sources (user --var input and third-party
+    blueprints), so an absolute value or one containing '..' must not be allowed to
+    write outside the target directory. Raises ValueError when the resolved path is
+    not contained within base.
+    """
+    base_resolved = base.resolve()
+    candidate = (base_resolved / rel).resolve()
+    if not candidate.is_relative_to(base_resolved):
+        raise ValueError(f"path '{rel}' escapes the target directory")
+    return candidate
 
 
 def build_template_context(blueprint: Blueprint, variables: dict[str, Any]) -> dict[str, Any]:
@@ -89,10 +107,17 @@ def generate(context: GenerationContext) -> GenerationResult:
 
     # 4. Create explicit directories
     for dir_pattern in blueprint.directories:
-        dir_path = context.target_dir / render_string(dir_pattern, tpl_context)
+        dir_rel = render_string(dir_pattern, tpl_context)
+        try:
+            dir_path = _safe_join(context.target_dir, dir_rel)
+        except ValueError as e:
+            result.errors.append(f"Unsafe directory '{dir_rel}': {e}")
+            continue
         created = ensure_directory(dir_path) if not context.dry_run else True
         if created:
-            result.directories_created.append(str(dir_path.relative_to(context.target_dir)))
+            result.directories_created.append(
+                str(dir_path.relative_to(context.target_dir.resolve()))
+            )
 
     # 5. Render templates
     template_dir = bp_path / "templates"
@@ -103,7 +128,11 @@ def generate(context: GenerationContext) -> GenerationResult:
                 continue
 
             target_rel = render_string(entry.target, tpl_context)
-            target_path = context.target_dir / target_rel
+            try:
+                target_path = _safe_join(context.target_dir, target_rel)
+            except ValueError as e:
+                result.errors.append(f"Unsafe template target '{target_rel}': {e}")
+                continue
 
             try:
                 content = render_template(env, entry.source, tpl_context)
@@ -129,7 +158,11 @@ def generate(context: GenerationContext) -> GenerationResult:
 
             target_rel = render_string(entry.target, tpl_context)
             source_path = static_dir / entry.source
-            target_path = context.target_dir / target_rel
+            try:
+                target_path = _safe_join(context.target_dir, target_rel)
+            except ValueError as e:
+                result.errors.append(f"Unsafe static target '{target_rel}': {e}")
+                continue
 
             if not source_path.exists():
                 result.errors.append(f"Static file not found: {entry.source}")
