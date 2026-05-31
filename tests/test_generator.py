@@ -4,7 +4,7 @@ from pathlib import Path
 
 from scaffoldkit.blueprint_loader import load_blueprint
 from scaffoldkit.generator import build_template_context, generate
-from scaffoldkit.models import GenerationContext
+from scaffoldkit.models import Blueprint, GenerationContext
 
 BLUEPRINTS_DIR = Path(__file__).resolve().parent.parent / "src" / "scaffoldkit" / "blueprints"
 
@@ -132,3 +132,66 @@ class TestGenerate:
         readme = (tmp_path / "output" / "README.md").read_text()
         assert "# Test Project" in readme
         assert "nextjs-fullstack" in readme
+
+
+class TestPathTraversal:
+    """A rendered target (from --var input or a third-party blueprint) must never
+    escape the target directory."""
+
+    def _bp(self, **fields) -> Blueprint:
+        base = dict(name="evil", display_name="Evil")
+        base.update(fields)
+        return Blueprint(**base)
+
+    def test_absolute_directory_rejected(self, tmp_path):
+        outside = tmp_path / "outside"
+        bp = self._bp(directories=[str(outside / "pwned")])
+        ctx = GenerationContext(
+            blueprint=bp,
+            blueprint_path=tmp_path / "bp",
+            variables={},
+            target_dir=tmp_path / "output",
+        )
+        result = generate(ctx)
+        assert not result.success
+        assert any("Unsafe directory" in e for e in result.errors)
+        assert not (outside / "pwned").exists()
+
+    def test_dotdot_directory_rejected(self, tmp_path):
+        bp = self._bp(directories=["../../escaped"])
+        ctx = GenerationContext(
+            blueprint=bp,
+            blueprint_path=tmp_path / "bp",
+            variables={},
+            target_dir=tmp_path / "output",
+        )
+        result = generate(ctx)
+        assert not result.success
+        assert any("Unsafe directory" in e for e in result.errors)
+        assert not (tmp_path / "escaped").exists()
+
+    def test_var_driven_traversal_rejected(self, tmp_path):
+        # Untrusted --var value rendered into a directory pattern.
+        bp = self._bp(directories=["{{ base_package }}/pkg"])
+        ctx = GenerationContext(
+            blueprint=bp,
+            blueprint_path=tmp_path / "bp",
+            variables={"base_package": "../../../../tmp/sk_escape"},
+            target_dir=tmp_path / "output",
+        )
+        result = generate(ctx)
+        assert not result.success
+        assert any("Unsafe directory" in e for e in result.errors)
+
+    def test_safe_nested_directory_allowed(self, tmp_path):
+        # Negative control: a legitimate nested path still works.
+        bp = self._bp(directories=["src/main/java/com/acme"])
+        ctx = GenerationContext(
+            blueprint=bp,
+            blueprint_path=tmp_path / "bp",
+            variables={},
+            target_dir=tmp_path / "output",
+        )
+        result = generate(ctx)
+        assert result.success
+        assert (tmp_path / "output" / "src" / "main" / "java" / "com" / "acme").is_dir()
