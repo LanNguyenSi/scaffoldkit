@@ -117,23 +117,21 @@ templates:
     target: requirements-dev.txt
 
   # Minimal runnable FastAPI starter so the blueprint emits real source, not just
-  # empty app/ directories. Unconditional: fastapi-backend is always FastAPI (it has
+  # empty src/ directories. Unconditional: fastapi-backend is always FastAPI (it has
   # no `framework` variable, so the rest-api blueprint's is_fastapi gate does not
-  # apply here). Runs via `uvicorn app.main:app` (pyproject sets pythonpath = ["."]).
-  - source: app/__init__.py.j2
-    target: app/__init__.py
+  # apply here). Runs via `uvicorn src.main:app` (pyproject sets pythonpath = ["."]).
+  # The src/ layout matches the thin rest-api blueprint and the planner's task paths.
+  - source: src/__init__.py.j2
+    target: src/__init__.py
 
-  - source: app/main.py.j2
-    target: app/main.py
+  - source: src/main.py.j2
+    target: src/main.py
 
-  - source: app/api/__init__.py.j2
-    target: app/api/__init__.py
+  - source: src/routes/__init__.py.j2
+    target: src/routes/__init__.py
 
-  - source: app/api/routes/__init__.py.j2
-    target: app/api/routes/__init__.py
-
-  - source: app/api/routes/health.py.j2
-    target: app/api/routes/health.py
+  - source: src/routes/health.py.j2
+    target: src/routes/health.py
 
   - source: tests/__init__.py.j2
     target: tests/__init__.py
@@ -177,14 +175,13 @@ static_files:
     target: .gitignore
 
 directories:
-  - app
-  - app/api
-  - app/api/routes
-  - app/core
-  - app/models
-  - app/repositories
-  - app/services
-  - app/workers
+  - src
+  - src/routes
+  - src/core
+  - src/models
+  - src/repositories
+  - src/services
+  - src/workers
   - tests
   - tests/integration
   - alembic

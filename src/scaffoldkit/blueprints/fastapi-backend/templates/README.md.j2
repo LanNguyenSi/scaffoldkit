@@ -33,13 +33,13 @@ uv venv
 source .venv/bin/activate
 uv sync
 uv run alembic upgrade head
-uv run uvicorn app.main:app --reload --port 8000
+uv run uvicorn src.main:app --reload --port 8000
 ```
 {% elif package_manager == "poetry" %}
 ```bash
 poetry install
 poetry run alembic upgrade head
-poetry run uvicorn app.main:app --reload --port 8000
+poetry run uvicorn src.main:app --reload --port 8000
 ```
 {% else %}
 ```bash
@@ -47,7 +47,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-dev.txt
 alembic upgrade head
-uvicorn app.main:app --reload --port 8000
+uvicorn src.main:app --reload --port 8000
 ```
 {% endif %}
 
@@ -62,8 +62,8 @@ API docs are expected at:
 
 ```text
 {{ project_name }}/
-├── app/
-│   ├── api/routes/       # FastAPI routers only
+├── src/
+│   ├── routes/           # FastAPI routers only
 │   ├── core/             # Settings, security, startup wiring
 │   ├── models/           # Pydantic models and persistence entities
 │   ├── repositories/     # Data access only
@@ -89,7 +89,7 @@ API docs are expected at:
 
 {% if auth_strategy == "jwt" %}
 - Use stateless JWT auth for machine-friendly and SPA-friendly flows.
-- Keep token verification in `app/core/security.py`; do not spread it across routers.
+- Keep token verification in `src/core/security.py`; do not spread it across routers.
 {% elif auth_strategy == "oauth2" %}
 - Use OAuth2 flows for delegated auth and external identity providers.
 - Treat callback handling and token exchange as infrastructure concerns, not business logic.
@@ -101,7 +101,7 @@ API docs are expected at:
 {% endif %}
 
 {% if use_background_jobs %}
-- Reserve `app/workers/` for Celery, Arq, RQ, or similar job handlers.
+- Reserve `src/workers/` for Celery, Arq, RQ, or similar job handlers.
 - Route handlers should enqueue long-running work instead of blocking request threads.
 {% endif %}
 

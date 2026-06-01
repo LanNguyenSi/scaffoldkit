@@ -2,11 +2,11 @@
 
 Run locally with:
 
-    uvicorn app.main:app --reload --port 8000
+    uvicorn src.main:app --reload --port 8000
 """
 from fastapi import FastAPI
 
-from app.api.routes import health
+from src.routes import health
 
 app = FastAPI(title="{{ display_name }}", version="0.1.0")
 app.include_router(health.router)

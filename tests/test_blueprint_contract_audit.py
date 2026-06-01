@@ -22,7 +22,7 @@ _PRIMARY_MANIFEST_CONTRACTS = {
         "pyproject.toml",
         "requirements.txt",
         "requirements-dev.txt",
-        "app/main.py",
+        "src/main.py",
     ),
     "nextjs-frontend": ("package.json",),
     "nextjs-fullstack": ("package.json",),

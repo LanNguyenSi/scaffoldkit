@@ -16,12 +16,12 @@ Read this before making code changes.
 ## Repository Rules
 
 ```text
-app/api/routes/      HTTP contracts only
-app/services/        business logic and orchestration
-app/repositories/    persistence access only
-app/models/          pydantic schemas and domain data shapes
-app/core/            settings, app bootstrap, auth wiring
-app/workers/         async jobs and out-of-band processing
+src/routes/      HTTP contracts only
+src/services/        business logic and orchestration
+src/repositories/    persistence access only
+src/models/          pydantic schemas and domain data shapes
+src/core/            settings, app bootstrap, auth wiring
+src/workers/         async jobs and out-of-band processing
 tests/integration/   API + persistence integration coverage
 ```
 
@@ -30,8 +30,8 @@ tests/integration/   API + persistence integration coverage
 1. Route handlers may validate request shape and call services. They must not hold business logic.
 2. Services own workflow logic, permission checks, and orchestration.
 3. Repositories are the only layer allowed to talk to the database.
-4. Long-running work leaves the request path and goes into `app/workers/`.
-5. Configuration is loaded centrally from `app/core/settings.py`.
+4. Long-running work leaves the request path and goes into `src/workers/`.
+5. Configuration is loaded centrally from `src/core/settings.py`.
 
 ## FastAPI Conventions
 
