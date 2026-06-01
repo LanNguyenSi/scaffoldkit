@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-01
+
+### Added
+
+- `scaffoldkit from-planforge --no-ai-context` to suppress blueprint AI-context file emission ([#45](https://github.com/LanNguyenSi/scaffoldkit/pull/45))
+
+### Security
+
+- Contain all generated paths under the target directory, blocking path traversal and absolute-path escapes during generation ([#44](https://github.com/LanNguyenSi/scaffoldkit/pull/44))
+
+### Changed
+
+- Documentation and packaging: README 60s hook restructured into `docs/`, completed open source surface (LICENSE holder, Code of Conduct, security policy, issue templates), and `pyproject.toml` authors set to Lan Nguyen Si ([#41](https://github.com/LanNguyenSi/scaffoldkit/pull/41), [#42](https://github.com/LanNguyenSi/scaffoldkit/pull/42), [#43](https://github.com/LanNguyenSi/scaffoldkit/pull/43))
+
 ## [0.1.0] - 2026-04-27
 
 First public release.
@@ -76,5 +90,6 @@ A `Dockerfile` and `docker-compose.yml` are shipped for the Docker path.
 - Single-user local execution; no concurrency guards.
 - Blueprint variables are flat (no nested objects).
 
-[Unreleased]: https://github.com/LanNguyenSi/scaffoldkit/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/LanNguyenSi/scaffoldkit/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/LanNguyenSi/scaffoldkit/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/LanNguyenSi/scaffoldkit/releases/tag/v0.1.0
