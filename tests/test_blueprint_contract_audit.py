@@ -18,7 +18,12 @@ _PRIMARY_MANIFEST_CONTRACTS = {
     "cli-tool": ("Cargo.toml", "go.mod", "package.json", "pyproject.toml"),
     "django-drf": ("pyproject.toml", "requirements.txt", "requirements-dev.txt"),
     "express-api": ("package.json", "tsconfig.json"),
-    "fastapi-backend": ("pyproject.toml", "requirements.txt", "requirements-dev.txt"),
+    "fastapi-backend": (
+        "pyproject.toml",
+        "requirements.txt",
+        "requirements-dev.txt",
+        "app/main.py",
+    ),
     "nextjs-frontend": ("package.json",),
     "nextjs-fullstack": ("package.json",),
     "reference-php-app": ("tools/composer.json",),

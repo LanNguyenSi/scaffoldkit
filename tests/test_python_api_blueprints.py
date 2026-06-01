@@ -1,5 +1,6 @@
 """Tests for FastAPI and Django DRF blueprints."""
 
+import ast
 from pathlib import Path
 
 import pytest
@@ -67,6 +68,37 @@ class TestFastapiBackendBlueprint:
         assert (output / "app" / "repositories").is_dir()
         assert (output / "alembic" / "versions").is_dir()
         assert (output / "tests" / "integration").is_dir()
+
+    def test_emits_runnable_python_source(self, tmp_path: Path):
+        output = _generate(tmp_path, "fastapi-backend", _FASTAPI_DEFAULTS)
+        main = output / "app" / "main.py"
+        route = output / "app" / "api" / "routes" / "health.py"
+        smoke = output / "tests" / "test_health.py"
+        assert main.exists()
+        assert route.exists()
+        assert smoke.exists()
+        # The rendered starter is valid Python, not just empty app/ directories.
+        for path in (
+            main,
+            route,
+            smoke,
+            output / "app" / "__init__.py",
+            output / "app" / "api" / "__init__.py",
+            output / "app" / "api" / "routes" / "__init__.py",
+            output / "tests" / "__init__.py",
+        ):
+            ast.parse(path.read_text())
+        assert "FastAPI" in main.read_text()
+        assert "app.api.routes" in main.read_text()
+        assert "/health" in route.read_text()
+        # ast.parse accepts unrendered Jinja inside string literals (docstrings,
+        # title="{{ display_name }}"), so guard substitution explicitly.
+        assert "{{" not in main.read_text()
+        assert "{{" not in route.read_text()
+        assert "Test FastAPI Service" in main.read_text()
+        # The app/ package runs via `uvicorn app.main:app` (pyproject sets
+        # pythonpath = ["."] / package = false, so no wheel build is needed).
+        assert "app.main:app" in (output / "README.md").read_text()
 
     @pytest.mark.parametrize("auth_strategy", ["jwt", "oauth2", "api-key", "none"])
     def test_all_auth_strategies(self, tmp_path: Path, auth_strategy: str):
