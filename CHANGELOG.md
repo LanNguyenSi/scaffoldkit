@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-01
+
+### Added
+
+- Minimal runnable starter source for the `rest-api` (FastAPI) and `cli-tool` (Python) blueprints, so a generated repo opens with real, runnable code and a smoke test instead of an empty `src/` ([#48](https://github.com/LanNguyenSi/scaffoldkit/pull/48))
+- Minimal runnable FastAPI starter for the `fastapi-backend` blueprint, the planforge remap target for python/FastAPI REST intakes ([#49](https://github.com/LanNguyenSi/scaffoldkit/pull/49))
+
+### Changed
+
+- Unified the `fastapi-backend` blueprint on the `src/` layout (`app/` to `src/`, `app/api/routes/` to `src/routes/`) so its scaffold matches the planner's generated task paths and the thin `rest-api` blueprint ([#50](https://github.com/LanNguyenSi/scaffoldkit/pull/50))
+
 ## [0.2.0] - 2026-06-01
 
 ### Added
@@ -90,6 +101,7 @@ A `Dockerfile` and `docker-compose.yml` are shipped for the Docker path.
 - Single-user local execution; no concurrency guards.
 - Blueprint variables are flat (no nested objects).
 
-[Unreleased]: https://github.com/LanNguyenSi/scaffoldkit/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/LanNguyenSi/scaffoldkit/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/LanNguyenSi/scaffoldkit/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/LanNguyenSi/scaffoldkit/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/LanNguyenSi/scaffoldkit/releases/tag/v0.1.0
