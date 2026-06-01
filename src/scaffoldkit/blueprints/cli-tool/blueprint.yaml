@@ -132,6 +132,32 @@ templates:
     target: AI_CONTEXT.md
     condition: ai_context
 
+  # Minimal runnable Python starter (entry module, one command, smoke test) so a
+  # python cli-tool scaffold ships real source instead of only a pyproject.toml.
+  - source: src/__init__.py.j2
+    target: src/__init__.py
+    condition: is_python
+
+  - source: src/main.py.j2
+    target: src/main.py
+    condition: is_python
+
+  - source: src/commands/__init__.py.j2
+    target: src/commands/__init__.py
+    condition: is_python
+
+  - source: src/commands/run.py.j2
+    target: src/commands/run.py
+    condition: is_python
+
+  - source: tests/__init__.py.j2
+    target: tests/__init__.py
+    condition: is_python
+
+  - source: tests/test_run.py.j2
+    target: tests/test_run.py
+    condition: is_python
+
   - source: package.json.j2
     target: package.json
     condition: is_typescript

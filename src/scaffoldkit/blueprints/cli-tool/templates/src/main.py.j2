@@ -1,0 +1,40 @@
+{% if cli_framework == "click" -%}
+"""{{ display_name }} - command-line entry point."""
+import click
+
+from src.commands.run import run
+
+
+@click.group(help="{{ description }}")
+@click.version_option("0.1.0")
+def app() -> None:
+    """{{ display_name }} command-line interface."""
+
+
+app.add_command(run)
+
+
+if __name__ == "__main__":
+    app()
+{% else -%}
+"""{{ display_name }} - command-line entry point."""
+import typer
+
+from src.commands import run as run_command
+
+app = typer.Typer(help="{{ description }}", no_args_is_help=True)
+
+
+@app.callback()
+def main() -> None:
+    """{{ display_name }} command-line interface."""
+
+
+# The callback above keeps `run` a named subcommand instead of Typer collapsing
+# a single-command app into the root invocation.
+app.command(name="run")(run_command.run)
+
+
+if __name__ == "__main__":
+    app()
+{% endif -%}

@@ -1,0 +1,23 @@
+{% if cli_framework == "click" -%}
+"""Smoke test for the run command."""
+from click.testing import CliRunner
+
+from src.main import app
+
+
+def test_run_greets() -> None:
+    result = CliRunner().invoke(app, ["run", "--name", "scaffoldkit"])
+    assert result.exit_code == 0
+    assert "Hello, scaffoldkit!" in result.output
+{% else -%}
+"""Smoke test for the run command."""
+from typer.testing import CliRunner
+
+from src.main import app
+
+
+def test_run_greets() -> None:
+    result = CliRunner().invoke(app, ["run", "--name", "scaffoldkit"])
+    assert result.exit_code == 0
+    assert "Hello, scaffoldkit!" in result.stdout
+{% endif -%}

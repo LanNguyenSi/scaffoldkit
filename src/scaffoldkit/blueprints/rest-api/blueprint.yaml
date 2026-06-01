@@ -102,6 +102,32 @@ templates:
   - source: README.md.j2
     target: README.md
 
+  # Minimal runnable FastAPI starter (entry module, one example route, smoke test)
+  # so a fastapi rest-api scaffold ships real source instead of an empty src/.
+  - source: src/__init__.py.j2
+    target: src/__init__.py
+    condition: is_fastapi
+
+  - source: src/main.py.j2
+    target: src/main.py
+    condition: is_fastapi
+
+  - source: src/routes/__init__.py.j2
+    target: src/routes/__init__.py
+    condition: is_fastapi
+
+  - source: src/routes/health.py.j2
+    target: src/routes/health.py
+    condition: is_fastapi
+
+  - source: tests/__init__.py.j2
+    target: tests/__init__.py
+    condition: is_fastapi
+
+  - source: tests/test_health.py.j2
+    target: tests/test_health.py
+    condition: is_fastapi
+
   - source: pyproject.toml.j2
     target: pyproject.toml
     condition: is_fastapi

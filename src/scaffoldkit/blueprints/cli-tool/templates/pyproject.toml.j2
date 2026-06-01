@@ -27,4 +27,7 @@ dev = [
 ]
 
 [project.scripts]
-{{ project_name | replace('-', '_') }} = "src.main:app"
+{{ project_name }} = "src.main:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]

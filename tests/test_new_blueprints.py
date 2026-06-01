@@ -1,5 +1,6 @@
 """Tests for rest-api, cli-tool, and static-site blueprints."""
 
+import ast
 from pathlib import Path
 
 import pytest
@@ -155,6 +156,35 @@ class TestRestApiBlueprint:
         assert not (output / "docker-compose.yml").exists()
         assert not (output / ".github" / "workflows" / "ci.yml").exists()
 
+    def test_fastapi_includes_runnable_python_baseline(self, tmp_path: Path):
+        output = _generate(tmp_path, "rest-api", _REST_API_DEFAULTS)
+        main = output / "src" / "main.py"
+        route = output / "src" / "routes" / "health.py"
+        smoke = output / "tests" / "test_health.py"
+        assert main.exists()
+        assert route.exists()
+        assert smoke.exists()
+        # The rendered starter is valid Python, not just a docs/manifest skeleton.
+        for path in (
+            main,
+            route,
+            smoke,
+            output / "src" / "__init__.py",
+            output / "src" / "routes" / "__init__.py",
+        ):
+            ast.parse(path.read_text())
+        assert "FastAPI" in main.read_text()
+        assert "/health" in route.read_text()
+        # The flat src/ package must be buildable by hatchling.
+        pyproject = (output / "pyproject.toml").read_text()
+        assert "[tool.hatch.build.targets.wheel]" in pyproject
+        assert 'packages = ["src"]' in pyproject
+
+    def test_non_fastapi_framework_skips_python_baseline(self, tmp_path: Path):
+        output = _generate(tmp_path, "rest-api", {**_REST_API_DEFAULTS, "framework": "express"})
+        assert not (output / "src" / "main.py").exists()
+        assert not (output / "tests" / "test_health.py").exists()
+
 
 # ---------------------------------------------------------------------------
 # cli-tool blueprint
@@ -240,6 +270,32 @@ class TestCliToolBlueprint:
         assert (output / "src" / "commands" / "config.ts").exists()
         assert (output / "src" / "config" / "loader.ts").exists()
         assert (output / "tests" / "run.test.ts").exists()
+
+    def test_python_cli_includes_runnable_baseline(self, tmp_path: Path):
+        output = _generate(tmp_path, "cli-tool", _CLI_TOOL_DEFAULTS)
+        main = output / "src" / "main.py"
+        command = output / "src" / "commands" / "run.py"
+        smoke = output / "tests" / "test_run.py"
+        assert main.exists()
+        assert command.exists()
+        assert smoke.exists()
+        for path in (main, command, smoke):
+            ast.parse(path.read_text())
+        assert "typer" in main.read_text()
+        # A python cli must not also ship the TypeScript baseline.
+        assert not (output / "src" / "main.ts").exists()
+        # The flat src/ package must be buildable, and the console script name
+        # must match the README's hyphenated project name (not an underscored slug).
+        pyproject = (output / "pyproject.toml").read_text()
+        assert "[tool.hatch.build.targets.wheel]" in pyproject
+        assert 'packages = ["src"]' in pyproject
+        assert 'test-cli = "src.main:app"' in pyproject
+
+    def test_python_cli_supports_click_framework(self, tmp_path: Path):
+        output = _generate(tmp_path, "cli-tool", {**_CLI_TOOL_DEFAULTS, "cli_framework": "click"})
+        main = (output / "src" / "main.py").read_text()
+        ast.parse(main)
+        assert "click" in main
 
     def test_generates_ci_contract_when_enabled(self, tmp_path: Path):
         output = _generate(tmp_path, "cli-tool", _CLI_TOOL_DEFAULTS)

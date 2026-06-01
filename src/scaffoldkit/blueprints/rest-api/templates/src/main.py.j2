@@ -1,0 +1,18 @@
+"""{{ display_name }} - FastAPI application entry point.
+
+Run locally with:
+
+    uvicorn src.main:app --reload --port 8000
+"""
+from fastapi import FastAPI
+
+from src.routes import health
+
+app = FastAPI(title="{{ display_name }}", version="0.1.0")
+app.include_router(health.router)
+
+
+@app.get("/")
+def root() -> dict[str, str]:
+    """Return a small service descriptor for the API root."""
+    return {"service": "{{ project_name }}", "status": "ok"}
