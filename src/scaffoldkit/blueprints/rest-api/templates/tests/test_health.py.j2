@@ -1,0 +1,12 @@
+"""Smoke tests for the health route and application wiring."""
+from src.main import app
+from src.routes.health import health
+
+
+def test_health_handler_returns_ok() -> None:
+    assert health() == {"status": "ok"}
+
+
+def test_app_registers_health_route() -> None:
+    paths = {getattr(route, "path", None) for route in app.routes}
+    assert "/health" in paths
