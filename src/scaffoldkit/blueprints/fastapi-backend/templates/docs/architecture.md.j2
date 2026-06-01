@@ -9,20 +9,20 @@
 ```text
 HTTP clients
     |
-FastAPI routers (`app/api/routes`)
+FastAPI routers (`src/routes`)
     |
-Services (`app/services`)
+Services (`src/services`)
     |
-Repositories (`app/repositories`)
+Repositories (`src/repositories`)
     |
 {{ db_provider | title }}
 ```
 
 Supporting layers:
 
-- `app/models` for Pydantic request/response models and internal data structures
-- `app/core` for configuration, security, startup, and dependency wiring
-{% if use_background_jobs %}- `app/workers` for asynchronous background jobs
+- `src/models` for Pydantic request/response models and internal data structures
+- `src/core` for configuration, security, startup, and dependency wiring
+{% if use_background_jobs %}- `src/workers` for asynchronous background jobs
 {% endif %}
 
 ## Responsibilities

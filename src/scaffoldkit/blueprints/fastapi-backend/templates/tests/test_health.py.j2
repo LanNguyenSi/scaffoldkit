@@ -1,6 +1,6 @@
 """Smoke tests for the health route and application wiring."""
-from app.main import app
-from app.api.routes.health import health
+from src.main import app
+from src.routes.health import health
 
 
 def test_health_handler_returns_ok() -> None:

@@ -278,8 +278,11 @@ class TestFromPlanforgeCommand:
 
         assert result.exit_code == 0
         assert "fallback 'fastapi-backend'" in result.output
-        assert (target / "app" / "api" / "routes").is_dir()
-        assert not (target / "src" / "routes").exists()
+        assert (target / "src" / "routes").is_dir()
+        # fastapi-backend now shares the src/ layout with the thin rest-api (so the
+        # planner's src/ task paths match); its richer layered dirs distinguish it.
+        assert (target / "src" / "repositories").is_dir()
+        assert (target / "alembic" / "versions").is_dir()
 
     def test_prefers_django_drf_for_generic_python_api_exports(self, tmp_path):
         export_path = tmp_path / "scaffoldkit-input.json"
