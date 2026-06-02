@@ -1,0 +1,13 @@
+package {{ base_package }}.repository;
+
+import {{ base_package }}.domain.Widget;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+/**
+ * Spring Data repository for {@link Widget}.
+ *
+ * <p>Repositories own persistence. Expose intent-revealing query methods here
+ * rather than leaking JPA details into the service layer.
+ */
+public interface WidgetRepository extends JpaRepository<Widget, Long> {
+}

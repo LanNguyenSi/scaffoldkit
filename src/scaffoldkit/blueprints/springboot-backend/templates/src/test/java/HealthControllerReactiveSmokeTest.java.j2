@@ -1,0 +1,34 @@
+package {{ base_package }};
+
+import {{ base_package }}.web.dto.HealthResponse;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.web.reactive.server.WebTestClient;
+
+/**
+ * End-to-end smoke test for the WebFlux stack: boots the full application and
+ * hits {@code GET /health} through the reactive test client. Exercises the
+ * web -> service -> repository wiring{% if use_auth %} and confirms the security
+ * chain permits the health probe unauthenticated{% endif %}.
+ */
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
+class HealthControllerSmokeTest {
+
+    @Autowired
+    private WebTestClient webTestClient;
+
+    @Test
+    void healthEndpointReturnsOk() {
+        webTestClient.get().uri("/health")
+            .exchange()
+            .expectStatus().isOk()
+            .expectBody(HealthResponse.class)
+            .value(body -> {
+                org.assertj.core.api.Assertions.assertThat(body.status()).isEqualTo("ok");
+                org.assertj.core.api.Assertions.assertThat(body.service())
+                    .isEqualTo("{{ project_name }}");
+            });
+    }
+}

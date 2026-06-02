@@ -70,6 +70,11 @@ def build_template_context(blueprint: Blueprint, variables: dict[str, Any]) -> d
     ctx["is_api_platform"] = api_style == "api-platform"
     ctx["is_custom_controllers"] = api_style == "custom-controllers"
     ctx["is_fos_rest"] = api_style == "fos-rest"
+    ctx["is_spring_mvc"] = api_style == "spring-mvc"
+    ctx["is_webflux"] = api_style == "webflux"
+    use_auth = bool(variables.get("use_auth"))
+    ctx["is_spring_mvc_auth"] = ctx["is_spring_mvc"] and use_auth
+    ctx["is_webflux_auth"] = ctx["is_webflux"] and use_auth
     use_docker = bool(variables.get("use_docker"))
     use_ci = bool(variables.get("use_ci"))
     ctx["is_nextjs_fullstack_docker"] = ctx["is_nextjs_fullstack"] and use_docker
