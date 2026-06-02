@@ -1,0 +1,29 @@
+import { getApiHealth } from "../services/health";
+
+// Render on every request so the API health probe reflects live status.
+export const dynamic = "force-dynamic";
+
+const pageStyle = { fontFamily: "system-ui, sans-serif", padding: "2rem" };
+
+export default async function HomePage() {
+  const health = await getApiHealth();
+
+  return (
+    <main style={pageStyle}>
+      <h1>{{ display_name }}</h1>
+      <p>{{ description }}</p>
+      <section>
+        <h2>API status</h2>
+{% raw %}        {health ? (
+          <p data-testid="api-status">
+            {health.service}: <strong>{health.status}</strong>
+          </p>
+        ) : (
+          <p data-testid="api-status">
+            API unreachable. Start the Symfony backend and reload.
+          </p>
+        )}
+{% endraw %}      </section>
+    </main>
+  );
+}

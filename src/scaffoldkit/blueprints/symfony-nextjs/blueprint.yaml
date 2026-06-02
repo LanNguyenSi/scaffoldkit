@@ -164,6 +164,63 @@ templates:
   - source: apps/api/composer.json.j2
     target: apps/api/composer.json
 
+  - source: apps/api/public/index.php.j2
+    target: apps/api/public/index.php
+
+  - source: apps/api/bin/console.j2
+    target: apps/api/bin/console
+
+  - source: apps/api/src/Kernel.php.j2
+    target: apps/api/src/Kernel.php
+
+  - source: apps/api/src/Controller/HealthController.php.j2
+    target: apps/api/src/Controller/HealthController.php
+
+  - source: apps/api/config/bundles.php.j2
+    target: apps/api/config/bundles.php
+
+  - source: apps/api/config/routes.yaml.j2
+    target: apps/api/config/routes.yaml
+
+  - source: apps/api/config/services.yaml.j2
+    target: apps/api/config/services.yaml
+
+  - source: apps/api/config/packages/framework.yaml.j2
+    target: apps/api/config/packages/framework.yaml
+
+  - source: apps/api/.env.example.j2
+    target: apps/api/.env.example
+
+  - source: apps/api/phpunit.dist.xml.j2
+    target: apps/api/phpunit.dist.xml
+
+  - source: apps/api/tests/Unit/Controller/HealthControllerTest.php.j2
+    target: apps/api/tests/Unit/Controller/HealthControllerTest.php
+
+  - source: apps/web/src/app/layout.tsx.j2
+    target: apps/web/src/app/layout.tsx
+
+  - source: apps/web/src/app/page.tsx.j2
+    target: apps/web/src/app/page.tsx
+
+  - source: apps/web/src/services/health.ts.j2
+    target: apps/web/src/services/health.ts
+
+  - source: apps/web/src/services/health.test.ts.j2
+    target: apps/web/src/services/health.test.ts
+
+  - source: apps/web/next.config.mjs.j2
+    target: apps/web/next.config.mjs
+
+  - source: apps/web/tsconfig.json.j2
+    target: apps/web/tsconfig.json
+
+  - source: apps/web/.env.example.j2
+    target: apps/web/.env.example
+
+  - source: packages/shared-types/src/index.ts.j2
+    target: packages/shared-types/src/index.ts
+
   - source: packages/shared-types/package.json.j2
     target: packages/shared-types/package.json
 

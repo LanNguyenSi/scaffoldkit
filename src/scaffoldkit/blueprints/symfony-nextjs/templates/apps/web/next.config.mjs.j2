@@ -1,0 +1,8 @@
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  // The shared-types package is consumed as source from the monorepo workspace.
+  transpilePackages: ["@{{ project_name }}/shared-types"],
+};
+
+export default nextConfig;

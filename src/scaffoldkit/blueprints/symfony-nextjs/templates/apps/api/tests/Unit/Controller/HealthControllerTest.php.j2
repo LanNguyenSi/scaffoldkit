@@ -1,0 +1,24 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Tests\Unit\Controller;
+
+use App\Controller\HealthController;
+use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\JsonResponse;
+
+final class HealthControllerTest extends TestCase
+{
+    public function testHealthEndpointReturnsOkStatus(): void
+    {
+        $response = (new HealthController())();
+
+        self::assertInstanceOf(JsonResponse::class, $response);
+        self::assertSame(200, $response->getStatusCode());
+
+        $payload = json_decode((string) $response->getContent(), true);
+        self::assertSame('ok', $payload['status']);
+        self::assertSame('{{ project_name }}', $payload['service']);
+    }
+}
