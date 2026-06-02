@@ -81,6 +81,24 @@ templates:
   - source: tsconfig.json.j2
     target: tsconfig.json
 
+  - source: .env.example.j2
+    target: .env.example
+
+  - source: src/index.ts.j2
+    target: src/index.ts
+
+  - source: src/routes/health.ts.j2
+    target: src/routes/health.ts
+
+  - source: src/middleware/error.ts.j2
+    target: src/middleware/error.ts
+
+  - source: prisma/schema.prisma.j2
+    target: prisma/schema.prisma
+
+  - source: tests/health.test.ts.j2
+    target: tests/health.test.ts
+
   - source: Makefile.j2
     target: Makefile
 

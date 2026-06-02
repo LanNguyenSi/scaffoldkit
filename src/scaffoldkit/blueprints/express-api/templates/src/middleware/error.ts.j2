@@ -1,0 +1,26 @@
+import type { NextFunction, Request, Response } from "express";
+
+/**
+ * Global error-handling middleware.
+ *
+ * Registered last in `src/index.ts`. Express recognises an error handler by
+ * its four-argument signature. Never leak internal error details to clients
+ * in production; log them server-side instead.
+ */
+export function errorHandler(
+  err: unknown,
+  _req: Request,
+  res: Response,
+  // `next` is required for Express to treat this as an error handler.
+  _next: NextFunction,
+): void {
+  // eslint-disable-next-line no-console
+  console.error(err);
+
+  const status =
+    typeof err === "object" && err !== null && "status" in err && typeof err.status === "number"
+      ? err.status
+      : 500;
+
+  res.status(status).json({ error: status === 500 ? "Internal Server Error" : String(err) });
+}
