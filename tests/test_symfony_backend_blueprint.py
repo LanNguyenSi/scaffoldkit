@@ -75,3 +75,25 @@ class TestSymfonyBackendBlueprint:
         assert not (output / ".dockerignore").exists()
         assert not (output / "docker" / "php" / "Dockerfile").exists()
         assert not (output / ".github" / "workflows" / "ci.yml").exists()
+
+    def test_composer_autoload_and_runtime_plugin_are_correct(self, tmp_path: Path):
+        import json
+
+        output = _generate(tmp_path, _DEFAULTS)
+        composer = json.loads((output / "composer.json").read_text())
+
+        # PSR-4 prefix must be a single namespace separator. Regression: the
+        # template double-escaped it to "App\\\\" which Composer reads as a
+        # double separator, so autoload resolves nothing (ClassNotFoundError).
+        assert composer["autoload"]["psr-4"] == {"App\\": "src/"}
+        assert composer["autoload-dev"]["psr-4"] == {"App\\Tests\\": "tests/"}
+
+        # symfony/runtime ships a Composer plugin generating
+        # vendor/autoload_runtime.php (required by public/index.php + bin/console);
+        # it must be allow-listed or Composer 2.2+ blocks it.
+        assert composer["config"]["allow-plugins"].get("symfony/runtime") is True
+
+        # A runnable smoke test + its phpunit config ship with the scaffold.
+        assert "phpunit/phpunit" in composer["require-dev"]
+        assert (output / "phpunit.dist.xml").exists()
+        assert (output / "tests" / "Unit" / "Controller" / "HealthControllerTest.php").exists()
