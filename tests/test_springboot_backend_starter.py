@@ -107,10 +107,8 @@ class TestSpringbootBackendStarter:
             assert text.count("{") == text.count("}"), f"unbalanced braces: {java_file}"
             assert text.count("(") == text.count(")"), f"unbalanced parens: {java_file}"
 
-            first_pkg_line = next(
-                line for line in text.splitlines() if line.startswith("package ")
-            )
-            declared = first_pkg_line[len("package "):].rstrip(";").strip()
+            first_pkg_line = next(line for line in text.splitlines() if line.startswith("package "))
+            declared = first_pkg_line[len("package ") :].rstrip(";").strip()
 
             parts = java_file.relative_to(output).parts
             java_idx = parts.index("java")
@@ -140,9 +138,7 @@ class TestSpringbootBackendStarter:
         props_text = _assert_nonempty(props)
         assert "distributionUrl=" in props_text
 
-        gradle_out = _generate(
-            tmp_path / "gradle", {**_DEFAULTS, "build_tool": "gradle"}
-        )
+        gradle_out = _generate(tmp_path / "gradle", {**_DEFAULTS, "build_tool": "gradle"})
         assert not (gradle_out / "mvnw").exists()
         assert not (gradle_out / ".mvn" / "wrapper" / "maven-wrapper.properties").exists()
 
