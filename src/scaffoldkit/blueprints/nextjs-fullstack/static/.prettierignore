@@ -1,0 +1,13 @@
+# Prettier enforces code formatting, not prose.
+#
+# The generated narrative and agent-context docs (README, AI_CONTEXT, .ai/,
+# docs/) use templated Markdown tables whose column widths depend on the
+# options chosen at scaffold time (database provider, auth strategy, feature
+# flags). Those tables cannot be statically aligned to satisfy `prettier
+# --check` across every option combination, so Markdown is excluded here and
+# edited by hand. Code (TS/JS/CSS/JSON) is still format-checked.
+*.md
+
+# Build / dependency output
+node_modules/
+.next/

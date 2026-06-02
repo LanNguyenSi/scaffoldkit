@@ -207,6 +207,9 @@ static_files:
     target: .dockerignore
     condition: use_docker
 
+  - source: .prettierignore
+    target: .prettierignore
+
 directories:
   - app/(public)
   - app/admin
