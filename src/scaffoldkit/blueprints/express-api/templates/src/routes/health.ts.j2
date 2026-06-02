@@ -1,0 +1,14 @@
+import { Router, type Request, type Response } from "express";
+
+/**
+ * Health-check router.
+ *
+ * Example route demonstrating the routes -> response layering. Real routes
+ * should delegate to a service in `src/services/` rather than computing the
+ * response inline.
+ */
+export const healthRouter = Router();
+
+healthRouter.get("/", (_req: Request, res: Response) => {
+  res.json({ status: "ok" });
+});

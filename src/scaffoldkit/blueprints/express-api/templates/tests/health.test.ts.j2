@@ -1,0 +1,39 @@
+import assert from "node:assert/strict";
+import { after, before, test } from "node:test";
+import type { AddressInfo } from "node:net";
+import type { Server } from "node:http";
+import { createApp } from "../src/index.js";
+
+/**
+ * Smoke test for the health route.
+ *
+ * Boots the real Express app on an ephemeral port (no live database needed)
+ * and asserts GET /health returns { status: "ok" }. This is the baseline a
+ * fresh implementer extends with route-level tests.
+ */
+let server: Server;
+let baseUrl: string;
+
+before(async () => {
+  const app = createApp();
+  await new Promise<void>((resolve) => {
+    server = app.listen(0, () => {
+      const { port } = server.address() as AddressInfo;
+      baseUrl = `http://127.0.0.1:${port}`;
+      resolve();
+    });
+  });
+});
+
+after(async () => {
+  await new Promise<void>((resolve, reject) => {
+    server.close((err) => (err ? reject(err) : resolve()));
+  });
+});
+
+test("GET /health returns status ok", async () => {
+  const res = await fetch(`${baseUrl}/health`);
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { status: string };
+  assert.deepEqual(body, { status: "ok" });
+});

@@ -1,0 +1,46 @@
+import express, { type Express } from "express";
+import { healthRouter } from "./routes/health.js";
+import { errorHandler } from "./middleware/error.js";
+
+/**
+ * Build and configure the Express application.
+ *
+ * Routers mount here; business logic lives in `src/services/` and data
+ * access in Prisma. The error handler is registered last so it catches
+ * failures from every route.
+ */
+export function createApp(): Express {
+  const app = express();
+
+  app.use(express.json());
+
+  app.use("/health", healthRouter);
+
+  // Error-handling middleware must be the last `app.use` call.
+  app.use(errorHandler);
+
+  return app;
+}
+
+const app = createApp();
+
+// Start the server only when this module is the entry point, so tests can
+// import `createApp` without binding a port.
+if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
+  const port = Number(process.env.PORT ?? 3000);
+  const server = app.listen(port, () => {
+    // eslint-disable-next-line no-console
+    console.log(`{{ display_name }} listening on http://localhost:${port}`);
+  });
+
+  // Graceful shutdown: stop accepting connections, then exit.
+  const shutdown = (signal: string) => {
+    // eslint-disable-next-line no-console
+    console.log(`Received ${signal}, shutting down.`);
+    server.close(() => process.exit(0));
+  };
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
+}
+
+export { app };
