@@ -62,12 +62,18 @@ Expected API docs:
 
 ```text
 {{ project_name }}/
+├── manage.py            # Django command-line entry point
 ├── config/              # Django project config and settings split
+│   ├── settings/        # settings package (DJANGO_SETTINGS_MODULE=config.settings)
+│   ├── urls.py          # root URLconf, wires apps.api under /api/
+│   ├── wsgi.py
+│   └── asgi.py
 ├── apps/
-│   ├── api/             # DRF resources and API composition
+│   ├── api/             # DRF health endpoint, serializer, app URLs
 │   ├── users/           # authentication and identity domain
 │   └── common/          # shared domain utilities
 ├── tests/
+│   ├── test_health.py   # pytest-django smoke test for GET /api/health
 │   └── integration/     # API and persistence integration tests
 ├── docs/
 │   ├── architecture.md

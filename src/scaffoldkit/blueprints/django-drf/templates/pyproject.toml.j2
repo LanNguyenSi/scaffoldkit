@@ -87,7 +87,9 @@ package = false
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings"
+pythonpath = ["."]
 python_files = ["test_*.py", "*_test.py"]
+testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 100

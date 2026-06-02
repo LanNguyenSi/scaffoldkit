@@ -1,0 +1,20 @@
+"""Smoke tests for the DRF health endpoint and project wiring.
+
+Uses pytest-django. The health view performs no database access, so these
+tests run against the SQLite default with no live server.
+"""
+from django.test import Client
+
+
+def test_health_endpoint_returns_ok() -> None:
+    client = Client()
+    response = client.get("/api/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok", "service": "{{ project_name }}"}
+
+
+def test_health_view_imports_and_serializes() -> None:
+    from apps.api.serializers import HealthSerializer
+
+    data = HealthSerializer({"status": "ok", "service": "{{ project_name }}"}).data
+    assert data["status"] == "ok"

@@ -1,0 +1,9 @@
+"""Serializers for the DRF API application."""
+from rest_framework import serializers
+
+
+class HealthSerializer(serializers.Serializer):
+    """Shape of the health probe response."""
+
+    status = serializers.CharField()
+    service = serializers.CharField()
