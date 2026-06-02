@@ -1,0 +1,16 @@
+"""Example API views for {{ display_name }}."""
+from rest_framework.decorators import api_view
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+
+@api_view(["GET"])
+def health(_request: Request) -> Response:
+    """Liveness probe used by orchestration and smoke tests."""
+    return Response({"status": "ok"})
+
+
+@api_view(["GET"])
+def root(_request: Request) -> Response:
+    """Return a small service descriptor for the API root."""
+    return Response({"service": "{{ project_name }}", "status": "ok"})

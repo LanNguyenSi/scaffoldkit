@@ -1,0 +1,37 @@
+import assert from "node:assert/strict";
+import type { AddressInfo } from "node:net";
+import { after, before, test } from "node:test";
+
+import { createApp } from "../src/app.js";
+
+let baseUrl: string;
+let server: ReturnType<ReturnType<typeof createApp>["listen"]>;
+
+before(async () => {
+  const app = createApp();
+  await new Promise<void>((resolve) => {
+    server = app.listen(0, () => resolve());
+  });
+  const { port } = server.address() as AddressInfo;
+  baseUrl = `http://127.0.0.1:${port}`;
+});
+
+after(async () => {
+  await new Promise<void>((resolve, reject) => {
+    server.close((err) => (err ? reject(err) : resolve()));
+  });
+});
+
+test("GET /health returns ok", async () => {
+  const res = await fetch(`${baseUrl}/health`);
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), { status: "ok" });
+});
+
+test("GET / returns a service descriptor", async () => {
+  const res = await fetch(`${baseUrl}/`);
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { service: string; status: string };
+  assert.equal(body.status, "ok");
+  assert.equal(typeof body.service, "string");
+});
