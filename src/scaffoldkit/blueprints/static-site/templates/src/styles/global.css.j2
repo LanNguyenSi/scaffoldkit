@@ -1,0 +1,56 @@
+{% if styling == "tailwind" -%}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Extract repeated utility patterns into component classes with @apply
+ * when a pattern appears three or more times. See docs/architecture.md.
+ */
+{%- elif styling == "scss" -%}
+/* Global styles for {{ display_name }}. Compiled from SCSS at build time. */
+:root {
+  --color-text: #1a1a1a;
+  --color-bg: #ffffff;
+  --color-accent: #2563eb;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --space: 1rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-bg);
+  line-height: 1.6;
+}
+{%- else -%}
+/* Global styles for {{ display_name }}. Plain CSS with custom properties for tokens. */
+:root {
+  --color-text: #1a1a1a;
+  --color-bg: #ffffff;
+  --color-accent: #2563eb;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --space: 1rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-bg);
+  line-height: 1.6;
+}
+{%- endif %}

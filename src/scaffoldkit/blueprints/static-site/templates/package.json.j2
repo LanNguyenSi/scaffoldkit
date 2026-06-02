@@ -4,18 +4,19 @@
   "private": true,
   "description": "{{ description }}",
   "scripts": {
-{% if framework == "astro" -%}
+{% if framework == "astro" %}
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview"
-{% elif framework == "nextjs-static" -%}
+    "preview": "astro preview",
+    "test": "node --test"
+{% elif framework == "nextjs-static" %}
     "dev": "next dev",
     "build": "next build",
     "preview": "next start"
-{% elif framework == "eleventy" -%}
+{% elif framework == "eleventy" %}
     "dev": "npx @11ty/eleventy --serve",
     "build": "npx @11ty/eleventy"
-{% else -%}
+{% else %}
     "dev": "hugo server --buildDrafts",
     "build": "hugo",
     "preview": "hugo server"
@@ -25,15 +26,25 @@
     "node": ">=20"
   }{% if framework != "hugo" %},
   "dependencies": {
-{% if framework == "astro" -%}
+{% if framework == "astro" %}
+{% if styling == "tailwind" %}
+    "astro": "^5.5.2",
+    "@astrojs/tailwind": "^5.1.5",
+    "tailwindcss": "^3.4.17"
+{% else %}
     "astro": "^5.5.2"
-{% elif framework == "nextjs-static" -%}
+{% endif %}
+{% elif framework == "nextjs-static" %}
     "next": "^15.2.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
-{% else -%}
+{% else %}
     "@11ty/eleventy": "^3.0.0"
 {% endif %}
+  }{% if framework == "astro" %},
+  "devDependencies": {
+    "@types/node": "^22.13.14"
   }
+{% endif %}
 {% endif %}
 }
