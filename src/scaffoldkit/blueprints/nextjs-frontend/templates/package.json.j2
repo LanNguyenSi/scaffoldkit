@@ -7,9 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-{% if language == "typescript" -%}
     "type-check": "tsc --noEmit",
-{% endif -%}
 {% if test_strategy == "vitest-only" or test_strategy == "vitest-and-playwright" -%}
     "test": "vitest run",
 {% else -%}
@@ -55,9 +53,7 @@
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
 {% endif -%}
-{% if language == "typescript" -%}
     "typescript": "^5.8.2",
-{% endif -%}
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
 {% if test_strategy == "vitest-only" or test_strategy == "vitest-and-playwright" -%}

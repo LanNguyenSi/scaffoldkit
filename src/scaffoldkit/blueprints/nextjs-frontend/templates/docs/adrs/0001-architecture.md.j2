@@ -68,7 +68,6 @@ The Pages Router was chosen because:
 
 ## Decision 2: {{ language | title }}
 
-{% if language == "typescript" %}
 TypeScript strict mode was chosen because:
 
 - Catch type errors at compile time, not in production
@@ -77,11 +76,6 @@ TypeScript strict mode was chosen because:
 - Required for `shadcn/ui`, TanStack Query, and other key libraries
 
 `tsconfig.json` uses `"strict": true`. Disable rules sparingly with `// @ts-expect-error` and a comment explaining why.
-{% else %}
-JavaScript was chosen to reduce initial friction. JSDoc annotations are used for type hints where it matters.
-
-**Recommendation:** Plan a TypeScript migration. The project structure and component conventions are compatible with TypeScript adoption at any time.
-{% endif %}
 
 ---
 
