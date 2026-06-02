@@ -112,3 +112,53 @@ class TestNextjsFullstackStarter:
         assert "vitest" in pkg["devDependencies"]
         assert "tailwindcss" in pkg["devDependencies"]
         assert "@tailwindcss/postcss" in pkg["devDependencies"]
+
+    def test_next_pinned_off_known_cve(self, tmp_path: Path):
+        # next 15.2.4 is affected by CVE-2025-66478; the blueprint must ship a
+        # patched pin (kept in lockstep with eslint-config-next).
+        output = _generate(tmp_path, _DEFAULTS)
+
+        pkg = json.loads((output / "package.json").read_text())
+        assert pkg["dependencies"]["next"] != "15.2.4"
+        assert pkg["devDependencies"]["eslint-config-next"] != "15.2.4"
+        assert pkg["dependencies"]["next"] == pkg["devDependencies"]["eslint-config-next"]
+
+    def test_package_json_is_valid_across_option_combos(self, tmp_path: Path):
+        # The conditional dependency/script blocks must render valid JSON for
+        # every option combination, not just the default path.
+        combos = [
+            {"auth_strategy": "none", "use_docker": False, "use_og_tags": False},
+            {"db_provider": "sqlite", "auth_strategy": "next-auth"},
+            {
+                "auth_strategy": "next-auth",
+                "use_email": True,
+                "use_analytics": True,
+                "use_csv_export": True,
+                "use_waitlist": True,
+            },
+        ]
+        for i, overrides in enumerate(combos):
+            output = _generate(tmp_path / f"combo{i}", {**_DEFAULTS, **overrides})
+            pkg = json.loads((output / "package.json").read_text())
+            # jwt-only deps must be absent when a different auth strategy is chosen.
+            if overrides.get("auth_strategy") != "jwt":
+                assert "jsonwebtoken" not in pkg["dependencies"]
+                assert "bcrypt" not in pkg["dependencies"]
+
+    def test_ships_prettierignore_excluding_markdown(self, tmp_path: Path):
+        # format:check enforces code formatting, not the templated narrative docs.
+        output = _generate(tmp_path, _DEFAULTS)
+
+        prettierignore = _read_nonempty(output / ".prettierignore")
+        assert "*.md" in prettierignore
+
+    def test_optional_doc_bullets_stay_on_their_own_line(self, tmp_path: Path):
+        # Inline {% if %}...{% endif %} bullets used to concatenate under
+        # trim_blocks (e.g. "Docker + Traefik- **SEO:**"). Block-form keeps
+        # each bullet on its own line.
+        output = _generate(tmp_path, _DEFAULTS)
+
+        for name in ("AI_CONTEXT.md", "README.md"):
+            text = _read_nonempty(output / name)
+            assert "Traefik- **" not in text
+            assert "- **Deployment:** Docker + Traefik\n" in text

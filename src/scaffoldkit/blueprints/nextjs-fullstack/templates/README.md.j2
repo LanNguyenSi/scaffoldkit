@@ -9,12 +9,24 @@
 - **Database:** {{ db_provider | capitalize }} + Prisma ORM
 - **Styling:** Tailwind CSS 4
 - **Auth:** {{ auth_strategy | upper }}
-{% if use_docker %}- **Deployment:** Docker + Traefik{% endif %}
-{% if use_email %}- **Email:** Nodemailer{% endif %}
-{% if use_analytics %}- **Charts:** Recharts{% endif %}
-{% if use_csv_export %}- **Exports:** CSV export flows included{% endif %}
-{% if use_waitlist %}- **Growth:** Waitlist management included{% endif %}
-{% if use_og_tags %}- **SEO:** Open Graph tags configured{% endif %}
+{% if use_docker %}
+- **Deployment:** Docker + Traefik
+{% endif %}
+{% if use_email %}
+- **Email:** Nodemailer
+{% endif %}
+{% if use_analytics %}
+- **Charts:** Recharts
+{% endif %}
+{% if use_csv_export %}
+- **Exports:** CSV export flows included
+{% endif %}
+{% if use_waitlist %}
+- **Growth:** Waitlist management included
+{% endif %}
+{% if use_og_tags %}
+- **SEO:** Open Graph tags configured
+{% endif %}
 
 ## Quick Start
 
