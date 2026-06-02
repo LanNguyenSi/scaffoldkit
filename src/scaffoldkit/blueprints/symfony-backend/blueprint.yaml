@@ -196,6 +196,12 @@ templates:
     target: AI_CONTEXT.md
     condition: ai_context
 
+  - source: phpunit.dist.xml.j2
+    target: phpunit.dist.xml
+
+  - source: tests/Unit/Controller/HealthControllerTest.php.j2
+    target: tests/Unit/Controller/HealthControllerTest.php
+
 static_files:
   - source: .editorconfig
     target: .editorconfig
