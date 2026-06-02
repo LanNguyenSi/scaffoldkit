@@ -181,6 +181,7 @@ templates:
 
   - source: src/app/globals.css.j2
     target: src/app/globals.css
+    condition: is_typescript
 
   - source: src/components/features/WelcomeCard.tsx.j2
     target: src/components/features/WelcomeCard.tsx
@@ -193,19 +194,28 @@ templates:
 
   - source: postcss.config.mjs.j2
     target: postcss.config.mjs
+    condition: is_typescript
 
-  # --- Smoke test + runner config (vitest is the default runner) ---
+  # --- Smoke test + runner config (gated per chosen runner) ---
   - source: src/app/page.test.tsx.j2
     target: src/app/page.test.tsx
     condition: is_typescript
 
   - source: vitest.config.ts.j2
     target: vitest.config.ts
-    condition: is_typescript
+    condition: is_typescript_vitest
 
   - source: vitest.setup.ts.j2
     target: vitest.setup.ts
-    condition: is_typescript
+    condition: is_typescript_vitest
+
+  - source: jest.config.mjs.j2
+    target: jest.config.mjs
+    condition: is_typescript_jest
+
+  - source: jest.setup.ts.j2
+    target: jest.setup.ts
+    condition: is_typescript_jest
 
   - source: .dockerignore.j2
     target: .dockerignore

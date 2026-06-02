@@ -93,6 +93,13 @@ def build_template_context(blueprint: Blueprint, variables: dict[str, Any]) -> d
     ctx["is_astro_blog"] = ctx["is_astro"] and site_type == "blog"
     ctx["is_astro_portfolio"] = ctx["is_astro"] and site_type == "portfolio"
     ctx["is_astro_landing_page"] = ctx["is_astro"] and site_type == "landing-page"
+    # nextjs-frontend test-runner discriminators: the blueprint's single-variable
+    # conditions can't express "typescript AND uses vitest", so derive the combos.
+    test_strategy = str(variables.get("test_strategy", "")).lower()
+    ctx["is_vitest"] = test_strategy in ("vitest-only", "vitest-and-playwright")
+    ctx["is_jest"] = test_strategy == "jest-and-cypress"
+    ctx["is_typescript_vitest"] = ctx["is_typescript"] and ctx["is_vitest"]
+    ctx["is_typescript_jest"] = ctx["is_typescript"] and ctx["is_jest"]
     ctx.update(blueprint.metadata)
     return ctx
 

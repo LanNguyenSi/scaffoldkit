@@ -118,3 +118,45 @@ class TestNextjsFrontendStarter:
         assert "jsdom" in dev
         assert "@vitejs/plugin-react" in dev
         assert "tailwindcss" in dev
+
+    def test_jest_strategy_emits_jest_config_not_vitest(self, tmp_path: Path):
+        # Regression: vitest.config/setup were gated on is_typescript only, so the
+        # jest-and-cypress combo shipped vitest config with a jest-wired test
+        # script and no jest config — npm test failed out of the box.
+        output = _generate(tmp_path, {**_DEFAULTS, "test_strategy": "jest-and-cypress"})
+
+        jest_config = output / "jest.config.mjs"
+        jest_setup = output / "jest.setup.ts"
+        for f in (jest_config, jest_setup):
+            assert f.exists(), f"expected jest scaffold missing: {f}"
+            assert f.read_text().strip(), f"jest scaffold file is empty: {f}"
+        assert "next/jest" in jest_config.read_text()
+        assert "@testing-library/jest-dom" in jest_setup.read_text()
+
+        # The vitest runner config must NOT ship for the jest strategy.
+        assert not (output / "vitest.config.ts").exists()
+        assert not (output / "vitest.setup.ts").exists()
+
+        # The package.json test script + deps must match the chosen runner.
+        pkg = json.loads((output / "package.json").read_text())
+        assert pkg["scripts"]["test"] == "jest --runInBand"
+        assert "jest" in pkg["devDependencies"]
+        assert "vitest" not in pkg["devDependencies"]
+
+        # The smoke test ships for both runners (jest provides describe/it globally).
+        assert (output / "src" / "app" / "page.test.tsx").exists()
+
+    def test_javascript_path_emits_no_orphan_style_or_test_config(self, tmp_path: Path):
+        # The runnable starter is TypeScript-only (no .jsx app templates). The JS
+        # path must not leave orphan globals.css/postcss/runner configs behind.
+        output = _generate(tmp_path, {**_DEFAULTS, "language": "javascript"})
+
+        for orphan in (
+            "src/app/globals.css",
+            "postcss.config.mjs",
+            "vitest.config.ts",
+            "vitest.setup.ts",
+            "jest.config.mjs",
+            "jest.setup.ts",
+        ):
+            assert not (output / orphan).exists(), f"orphan emitted on JS path: {orphan}"
