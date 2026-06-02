@@ -47,7 +47,7 @@ Directories (6):
   hello-cli/docs/adrs
 ```
 
-`AI_CONTEXT.md` and the `docs/` set are the point: every blueprint ships ways-of-working, an architecture doc, and an ADR seed so a downstream Claude Code or Cursor session has real context from minute one. Run `scaffoldkit list` to see all 13 blueprints.
+`AI_CONTEXT.md` and the `docs/` set are the point: every blueprint ships ways-of-working, an architecture doc, and an ADR seed so a downstream Claude Code or Cursor session has real context from minute one. Run `scaffoldkit list` to see all 12 blueprints.
 
 ## Next steps
 

@@ -26,7 +26,6 @@ _PRIMARY_MANIFEST_CONTRACTS = {
     ),
     "nextjs-frontend": ("package.json",),
     "nextjs-fullstack": ("package.json",),
-    "reference-php-app": ("tools/composer.json",),
     "rest-api": ("package.json", "pom.xml", "pyproject.toml"),
     "saas-dashboard": (
         "package.json",
