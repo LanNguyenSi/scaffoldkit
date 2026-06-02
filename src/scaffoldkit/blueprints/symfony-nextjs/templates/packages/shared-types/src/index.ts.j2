@@ -1,0 +1,15 @@
+/**
+ * Types shared between the Symfony API and the Next.js web app.
+ *
+ * The Symfony side documents the matching shape in
+ * `apps/api/src/Controller/HealthController.php` (GET /health). Keep both in
+ * sync, or regenerate from the OpenAPI document via `pnpm generate:types`.
+ */
+
+/** Response body of the API health probe (GET /health). */
+export interface HealthStatus {
+  /** Liveness flag, "ok" when the API is healthy. */
+  status: "ok";
+  /** Service identifier (the project slug). */
+  service: string;
+}
