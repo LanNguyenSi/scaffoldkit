@@ -1,0 +1,22 @@
+// Prisma schema. Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+{% if db_provider == 'postgresql' %}  provider = "postgresql"
+{% elif db_provider == 'mysql' %}  provider = "mysql"
+{% else %}  provider = "sqlite"
+{% endif %}  url      = env("DATABASE_URL")
+}
+
+// Example model. Replace with your own domain entities.
+model Post {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
