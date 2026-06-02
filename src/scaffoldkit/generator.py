@@ -80,6 +80,14 @@ def build_template_context(blueprint: Blueprint, variables: dict[str, Any]) -> d
     ctx["is_symfony_api_react_ci"] = ctx["is_symfony_api_react"] and use_ci
     ctx["is_django_htmx_ci"] = ctx["is_django_htmx"] and use_ci
     ctx["is_rails_hotwire_ci"] = ctx["is_rails_hotwire"] and use_ci
+    # static-site (Astro) starter discriminators: framework + styling/site_type
+    styling = str(variables.get("styling", "")).lower()
+    site_type = str(variables.get("site_type", "")).lower()
+    ctx["is_astro_tailwind"] = ctx["is_astro"] and styling == "tailwind"
+    ctx["is_astro_docs"] = ctx["is_astro"] and site_type == "docs"
+    ctx["is_astro_blog"] = ctx["is_astro"] and site_type == "blog"
+    ctx["is_astro_portfolio"] = ctx["is_astro"] and site_type == "portfolio"
+    ctx["is_astro_landing_page"] = ctx["is_astro"] and site_type == "landing-page"
     ctx.update(blueprint.metadata)
     return ctx
 

@@ -115,6 +115,55 @@ templates:
   - source: package.json.j2
     target: package.json
 
+  # --- Astro runnable starter (gated on framework == astro) ---
+  - source: astro.config.mjs.j2
+    target: astro.config.mjs
+    condition: is_astro
+
+  - source: tsconfig.json.j2
+    target: tsconfig.json
+    condition: is_astro
+
+  - source: src/layouts/Base.astro.j2
+    target: src/layouts/Base.astro
+    condition: is_astro
+
+  - source: src/pages/index.astro.j2
+    target: src/pages/index.astro
+    condition: is_astro
+
+  - source: src/styles/global.css.j2
+    target: src/styles/global.css
+    condition: is_astro
+
+  - source: src/content.config.ts.j2
+    target: src/content.config.ts
+    condition: is_astro
+
+  - source: src/content/docs/index.md.j2
+    target: src/content/docs/index.md
+    condition: is_astro_docs
+
+  - source: src/content/blog/welcome.md.j2
+    target: src/content/blog/welcome.md
+    condition: is_astro_blog
+
+  - source: src/content/projects/example-project.md.j2
+    target: src/content/projects/example-project.md
+    condition: is_astro_portfolio
+
+  - source: src/content/sections/hero.md.j2
+    target: src/content/sections/hero.md
+    condition: is_astro_landing_page
+
+  - source: tailwind.config.mjs.j2
+    target: tailwind.config.mjs
+    condition: is_astro_tailwind
+
+  - source: tests/site.test.mjs.j2
+    target: tests/site.test.mjs
+    condition: is_astro
+
   - source: .github/workflows/deploy.yml.j2
     target: .github/workflows/deploy.yml
     condition: use_ci

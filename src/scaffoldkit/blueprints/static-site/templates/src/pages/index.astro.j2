@@ -1,0 +1,38 @@
+---
+// Home page. Route "/" -> dist/index.html.
+import Base from "@/layouts/Base.astro";
+{% if site_type == "docs" %}
+import { getCollection } from "astro:content";
+
+const docs = await getCollection("docs");
+{% endif %}
+---
+
+<Base title="{{ display_name }}">
+  <h1>{{ display_name }}</h1>
+  <p>{{ description }}</p>
+{% if site_type == "docs" %}
+  <nav aria-label="Documentation">
+    <h2>Documentation</h2>
+    <ul>
+      {docs.map((entry) => (
+        <li>
+          <a href={`/docs/${entry.id.replace(/\.(md|mdx)$/, "")}`}>
+            {entry.data.title}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+{% elif site_type == "blog" %}
+  <p>Welcome to the blog. Posts live in <code>src/content/blog/</code>.</p>
+{% elif site_type == "portfolio" %}
+  <p>Project entries live in <code>src/content/projects/</code>.</p>
+{% else %}
+  <p>Edit this page in <code>src/pages/index.astro</code>.</p>
+{% endif %}
+  <p>
+    Edit <code>src/pages/index.astro</code> to change this page, or add
+    new files under <code>src/pages/</code> to create routes.
+  </p>
+</Base>

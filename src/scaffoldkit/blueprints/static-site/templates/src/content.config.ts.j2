@@ -1,0 +1,57 @@
+// Content collection schemas. Frontmatter is validated against these at build.
+// Docs: https://docs.astro.build/en/guides/content-collections/
+import { defineCollection, z } from "astro:content";
+import { glob } from "astro/loaders";
+
+{% if site_type == "blog" -%}
+const blog = defineCollection({
+  loader: glob({ pattern: "**/*.{md,mdx}", base: "./src/content/blog" }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string(),
+    pubDate: z.coerce.date(),
+    author: z.string().optional(),
+    tags: z.array(z.string()).default([]),
+    draft: z.boolean().default(false),
+  }),
+});
+
+export const collections = { blog };
+{%- elif site_type == "portfolio" -%}
+const projects = defineCollection({
+  loader: glob({ pattern: "**/*.{md,mdx}", base: "./src/content/projects" }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string(),
+    date: z.coerce.date(),
+    tags: z.array(z.string()).default([]),
+    status: z.enum(["completed", "in-progress", "archived"]).default("completed"),
+    featured: z.boolean().default(false),
+  }),
+});
+
+export const collections = { projects };
+{%- elif site_type == "landing-page" -%}
+const sections = defineCollection({
+  loader: glob({ pattern: "**/*.{md,mdx}", base: "./src/content/sections" }),
+  schema: z.object({
+    title: z.string(),
+    sectionId: z.string().optional(),
+    order: z.number().default(99),
+    visible: z.boolean().default(true),
+  }),
+});
+
+export const collections = { sections };
+{%- else -%}
+const docs = defineCollection({
+  loader: glob({ pattern: "**/*.{md,mdx}", base: "./src/content/docs" }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string(),
+    draft: z.boolean().default(false),
+  }),
+});
+
+export const collections = { docs };
+{%- endif %}

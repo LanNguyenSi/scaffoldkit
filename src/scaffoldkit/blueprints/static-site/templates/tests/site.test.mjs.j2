@@ -1,0 +1,32 @@
+// Smoke test for {{ display_name }}.
+// Verifies the Astro build emits a real home page (dist/index.html), not
+// an empty "0 page(s) built" result. Builds on demand so `npm test` is
+// self-contained. Run with: npm test (node --test).
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { existsSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const indexHtml = join(root, "dist", "index.html");
+
+function ensureBuilt() {
+  if (existsSync(indexHtml)) return;
+  execFileSync("npx", ["astro", "build"], { cwd: root, stdio: "inherit" });
+}
+
+test("astro build emits a home page", () => {
+  ensureBuilt();
+  assert.ok(existsSync(indexHtml), "dist/index.html should exist after build");
+});
+
+test("home page contains the site name", () => {
+  ensureBuilt();
+  const html = readFileSync(indexHtml, "utf8");
+  assert.ok(
+    html.includes({{ display_name | tojson }}),
+    "home page should render the site name",
+  );
+});
