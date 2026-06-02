@@ -1,5 +1,5 @@
 {% if styling == "tailwind" or styling == "scss" %}import "./globals.css";
-{% endif %}{% if language == "typescript" %}import type { Metadata } from "next";
+{% endif %}import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
@@ -14,16 +14,3 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     </html>
   );
 }
-{% else %}export const metadata = {
-  title: "{{ display_name }}",
-  description: "{{ description }}",
-};
-
-export default function RootLayout({ children }) {
-  return (
-    <html lang="en">
-      <body>{children}</body>
-    </html>
-  );
-}
-{% endif %}

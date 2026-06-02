@@ -146,17 +146,21 @@ class TestNextjsFrontendStarter:
         # The smoke test ships for both runners (jest provides describe/it globally).
         assert (output / "src" / "app" / "page.test.tsx").exists()
 
-    def test_javascript_path_emits_no_orphan_style_or_test_config(self, tmp_path: Path):
-        # The runnable starter is TypeScript-only (no .jsx app templates). The JS
-        # path must not leave orphan globals.css/postcss/runner configs behind.
-        output = _generate(tmp_path, {**_DEFAULTS, "language": "javascript"})
+    def test_javascript_language_choice_is_not_offered(self, tmp_path: Path):
+        # The runnable starter ships only .tsx templates, so the javascript
+        # choice produced no runnable app and was dropped. The blueprint must
+        # advertise typescript as the sole language and reject javascript.
+        bp = load_blueprint(BLUEPRINTS_DIR / "nextjs-frontend")
+        language_var = next(v for v in bp.variables if v.name == "language")
+        assert language_var.choices == ["typescript"]
 
-        for orphan in (
-            "src/app/globals.css",
-            "postcss.config.mjs",
-            "vitest.config.ts",
-            "vitest.setup.ts",
-            "jest.config.mjs",
-            "jest.setup.ts",
-        ):
-            assert not (output / orphan).exists(), f"orphan emitted on JS path: {orphan}"
+        result = generate(
+            GenerationContext(
+                blueprint=bp,
+                blueprint_path=BLUEPRINTS_DIR / "nextjs-frontend",
+                variables={**_DEFAULTS, "language": "javascript"},
+                target_dir=tmp_path / "js",
+            )
+        )
+        assert not result.success
+        assert any("language" in e and "javascript" in e for e in result.errors)

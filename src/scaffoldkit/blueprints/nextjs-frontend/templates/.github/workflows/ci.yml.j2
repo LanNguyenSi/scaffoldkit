@@ -46,7 +46,7 @@ jobs:
           fi
           if [ "$PM" = "pnpm" ]; then
             pnpm lint || echo "No lint script found. Skipping lint."
-            {% if language == "typescript" %}if [ -f tsconfig.json ]; then pnpm exec tsc --noEmit || true; fi{% else %}echo "No TypeScript check required."{% endif %}
+            if [ -f tsconfig.json ]; then pnpm exec tsc --noEmit || true; fi
             pnpm test || echo "No test script found. Skipping tests."
             pnpm build || echo "No build script found. Skipping build."
 {% if use_storybook %}
@@ -54,7 +54,7 @@ jobs:
 {% endif %}
           elif [ "$PM" = "yarn" ]; then
             yarn lint || echo "No lint script found. Skipping lint."
-            {% if language == "typescript" %}if [ -f tsconfig.json ]; then yarn tsc --noEmit || true; fi{% else %}echo "No TypeScript check required."{% endif %}
+            if [ -f tsconfig.json ]; then yarn tsc --noEmit || true; fi
             yarn test || echo "No test script found. Skipping tests."
             yarn build || echo "No build script found. Skipping build."
 {% if use_storybook %}
@@ -62,7 +62,7 @@ jobs:
 {% endif %}
           else
             npm run lint || echo "No lint script found. Skipping lint."
-            {% if language == "typescript" %}if [ -f tsconfig.json ]; then npx tsc --noEmit || true; fi{% else %}echo "No TypeScript check required."{% endif %}
+            if [ -f tsconfig.json ]; then npx tsc --noEmit || true; fi
             npm test || echo "No test script found. Skipping tests."
             npm run build || echo "No build script found. Skipping build."
 {% if use_storybook %}

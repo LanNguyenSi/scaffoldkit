@@ -49,11 +49,10 @@ variables:
     required: true
 
   - name: language
-    description: "Primary language"
+    description: "Primary language (TypeScript only; the starter ships no JS templates)"
     type: choice
     choices:
       - "typescript"
-      - "javascript"
     default: "typescript"
     required: true
 
