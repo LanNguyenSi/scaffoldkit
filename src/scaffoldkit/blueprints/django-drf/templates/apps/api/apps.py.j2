@@ -1,0 +1,9 @@
+"""App configuration for the DRF API application."""
+from django.apps import AppConfig
+
+
+class ApiConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    # Nested under apps/, so the import path is the dotted label Django expects.
+    name = "apps.api"
+    label = "api"

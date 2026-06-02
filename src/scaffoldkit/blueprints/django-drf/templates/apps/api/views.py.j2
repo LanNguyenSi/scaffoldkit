@@ -1,0 +1,17 @@
+"""Views for the DRF API application."""
+from rest_framework.permissions import AllowAny
+from rest_framework.request import Request
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from apps.api.serializers import HealthSerializer
+
+
+class HealthView(APIView):
+    """Liveness probe used by orchestration and smoke tests."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request: Request) -> Response:
+        payload = {"status": "ok", "service": "{{ project_name }}"}
+        return Response(HealthSerializer(payload).data)

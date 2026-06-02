@@ -1,0 +1,10 @@
+"""URL routes for the DRF API application."""
+from django.urls import path
+
+from apps.api.views import HealthView
+
+app_name = "api"
+
+urlpatterns = [
+    path("health", HealthView.as_view(), name="health"),
+]

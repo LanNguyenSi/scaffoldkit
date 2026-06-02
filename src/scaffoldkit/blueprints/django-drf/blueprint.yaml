@@ -117,6 +117,70 @@ templates:
   - source: requirements-dev.txt.j2
     target: requirements-dev.txt
 
+  # Minimal runnable Django + DRF starter so the blueprint emits real source, not
+  # just empty config/ and apps/ directories. All entries are unconditional: this
+  # blueprint is always Django/DRF. The layout matches the declared directories
+  # (config/ as a project package, config/settings/ as a settings package resolving
+  # to DJANGO_SETTINGS_MODULE=config.settings, apps/api + apps/users as DRF apps).
+  # Local/test DB is SQLite so `python manage.py check` and the pytest-django smoke
+  # test run with no live server.
+  - source: manage.py.j2
+    target: manage.py
+
+  - source: config/__init__.py.j2
+    target: config/__init__.py
+
+  - source: config/settings/__init__.py.j2
+    target: config/settings/__init__.py
+
+  - source: config/urls.py.j2
+    target: config/urls.py
+
+  - source: config/wsgi.py.j2
+    target: config/wsgi.py
+
+  - source: config/asgi.py.j2
+    target: config/asgi.py
+
+  - source: apps/__init__.py.j2
+    target: apps/__init__.py
+
+  - source: apps/common/__init__.py.j2
+    target: apps/common/__init__.py
+
+  - source: apps/api/__init__.py.j2
+    target: apps/api/__init__.py
+
+  - source: apps/api/apps.py.j2
+    target: apps/api/apps.py
+
+  - source: apps/api/serializers.py.j2
+    target: apps/api/serializers.py
+
+  - source: apps/api/views.py.j2
+    target: apps/api/views.py
+
+  - source: apps/api/urls.py.j2
+    target: apps/api/urls.py
+
+  - source: apps/api/migrations/__init__.py.j2
+    target: apps/api/migrations/__init__.py
+
+  - source: apps/users/__init__.py.j2
+    target: apps/users/__init__.py
+
+  - source: apps/users/apps.py.j2
+    target: apps/users/apps.py
+
+  - source: apps/users/migrations/__init__.py.j2
+    target: apps/users/migrations/__init__.py
+
+  - source: tests/__init__.py.j2
+    target: tests/__init__.py
+
+  - source: tests/test_health.py.j2
+    target: tests/test_health.py
+
   - source: .dockerignore.j2
     target: .dockerignore
     condition: use_docker
