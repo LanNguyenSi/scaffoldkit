@@ -146,3 +146,13 @@ class TestBlueprintContractAudit:
     def test_known_unused_variable_gaps_snapshot(self):
         """Track variables that are declared in blueprints but not referenced anywhere."""
         assert _audit_unused_variable_gaps() == _KNOWN_UNUSED_VARIABLES
+
+    def test_no_blueprint_pins_next_to_known_cve_version(self):
+        """No package.json template may pin next to 15.2.4 (CVE-2025-66478)."""
+        offenders = []
+        for pkg in BLUEPRINTS_DIR.glob("**/package.json.j2"):
+            for lineno, line in enumerate(pkg.read_text().splitlines(), start=1):
+                if '"next"' in line and "15.2.4" in line:
+                    rel = pkg.relative_to(BLUEPRINTS_DIR)
+                    offenders.append(f"{rel}:{lineno}")
+        assert offenders == [], f"next pinned to CVE-2025-66478 version: {offenders}"
