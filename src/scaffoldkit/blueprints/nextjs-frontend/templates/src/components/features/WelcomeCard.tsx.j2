@@ -1,0 +1,16 @@
+{% if language == "typescript" %}interface WelcomeCardProps {
+  projectName: string;
+}
+
+export function WelcomeCard({ projectName }: WelcomeCardProps) {
+{% else %}export function WelcomeCard({ projectName }) {
+{% endif %}  return (
+    <section{% if styling == "tailwind" %} className="rounded-lg border bg-card p-6 shadow-sm"{% endif %}>
+      <h2{% if styling == "tailwind" %} className="text-xl font-medium"{% endif %}>Welcome to {projectName}</h2>
+      <p{% if styling == "tailwind" %} className="mt-2 text-sm text-muted-foreground"{% endif %}>
+        This starter renders a real authored route. Edit{" "}
+        <code>src/app/page.tsx</code> to begin building your application.
+      </p>
+    </section>
+  );
+}

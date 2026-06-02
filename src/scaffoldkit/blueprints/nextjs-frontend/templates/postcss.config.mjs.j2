@@ -1,0 +1,9 @@
+/** @type {import('postcss-load-config').Config} */
+const config = {
+  plugins: {
+{% if styling == "tailwind" %}    tailwindcss: {},
+    autoprefixer: {},
+{% endif %}  },
+};
+
+export default config;

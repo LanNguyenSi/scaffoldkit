@@ -1,0 +1,11 @@
+import { WelcomeCard } from "@/components/features/WelcomeCard";
+
+export default function HomePage() {
+  return (
+    <main{% if styling == "tailwind" %} className="flex min-h-screen flex-col items-center justify-center gap-6 p-6"{% endif %}>
+      <h1{% if styling == "tailwind" %} className="text-2xl font-semibold"{% endif %}>{{ display_name }}</h1>
+      <p{% if styling == "tailwind" %} className="text-muted-foreground"{% endif %}>{{ description }}</p>
+      <WelcomeCard projectName="{{ project_name }}" />
+    </main>
+  );
+}
