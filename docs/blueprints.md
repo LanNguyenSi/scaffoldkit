@@ -75,7 +75,7 @@ The generator also injects derived flags (`is_python`, `is_typescript`, `is_fast
 
 ## Shipped blueprints
 
-ScaffoldKit ships 13 blueprints in `src/scaffoldkit/blueprints/`. `scaffoldkit list` always reflects the current set.
+ScaffoldKit ships 12 blueprints in `src/scaffoldkit/blueprints/`. `scaffoldkit list` always reflects the current set.
 
 | Name | Stack | Description |
 |------|-------|-------------|
@@ -85,7 +85,6 @@ ScaffoldKit ships 13 blueprints in `src/scaffoldkit/blueprints/`. `scaffoldkit l
 | `fastapi-backend` | python-fastapi | Production-ready FastAPI backend with layered application structure, API guidance, and AI context. |
 | `nextjs-frontend` | frontend | Production-ready Next.js frontend project skeleton with docs, conventions, and AI context. |
 | `nextjs-fullstack` | nextjs-fullstack | Full-stack Next.js application with Prisma, PostgreSQL, Tailwind CSS, and AI agent context. |
-| `reference-php-app` | php-symfony-reference | Reference Symfony/PHP repository scaffold with Docker, CI actions, security tooling, and a placeholder application mount. |
 | `rest-api` | backend | REST API project skeleton with layered architecture, docs, and AI context. |
 | `saas-dashboard` | fullstack | Full-stack SaaS dashboard with monorepo structure, docs, and AI context. |
 | `springboot-backend` | java-spring | Production-ready Spring Boot API backend with docs, architecture patterns, and AI context. |

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- Removed the `reference-php-app` blueprint, an app-less ops/CI/security shell whose `project/` directory was only a placeholder mount. The runnable `symfony-backend` and `symfony-nextjs` blueprints cover real PHP/Symfony app and monorepo scaffolds.
+
 ## [0.3.0] - 2026-06-01
 
 ### Added
