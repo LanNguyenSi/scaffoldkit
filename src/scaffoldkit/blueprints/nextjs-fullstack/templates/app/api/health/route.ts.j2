@@ -1,0 +1,11 @@
+import { NextResponse } from "next/server";
+
+// Example route handler. Returns a static health payload so the endpoint
+// stays green without a live database connection (useful for smoke tests
+// and container health checks). Extend it to ping Prisma once your schema
+// is migrated, e.g. run "SELECT 1" via prisma.$queryRaw before responding.
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  return NextResponse.json({ status: "ok", service: "{{ project_name }}" });
+}

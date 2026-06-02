@@ -121,6 +121,40 @@ templates:
   - source: lint-staged.config.js.j2
     target: lint-staged.config.js
 
+  # --- Runnable starter: config ---
+  - source: tsconfig.json.j2
+    target: tsconfig.json
+  - source: next.config.mjs.j2
+    target: next.config.mjs
+  - source: postcss.config.mjs.j2
+    target: postcss.config.mjs
+  - source: eslint.config.mjs.j2
+    target: eslint.config.mjs
+  - source: .env.example.j2
+    target: .env.example
+
+  # --- Runnable starter: app + api ---
+  - source: app/layout.tsx.j2
+    target: app/layout.tsx
+  - source: app/globals.css.j2
+    target: app/globals.css
+  - source: app/page.tsx.j2
+    target: app/page.tsx
+  - source: app/api/health/route.ts.j2
+    target: app/api/health/route.ts
+
+  # --- Runnable starter: prisma + lib ---
+  - source: prisma/schema.prisma.j2
+    target: prisma/schema.prisma
+  - source: lib/prisma.ts.j2
+    target: lib/prisma.ts
+
+  # --- Runnable starter: smoke test ---
+  - source: vitest.config.mts.j2
+    target: vitest.config.mts
+  - source: tests/health.test.ts.j2
+    target: tests/health.test.ts
+
   - source: README.md.j2
     target: README.md
 

@@ -1,0 +1,17 @@
+export default function Home() {
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-8">
+      <h1 className="text-4xl font-bold">{{ display_name }}</h1>
+      <p className="text-lg opacity-80">{{ description }}</p>
+      <p className="text-sm opacity-60">
+        Edit <code className="font-mono">app/page.tsx</code> to start building.
+      </p>
+      <a
+        className="rounded-md border px-4 py-2 text-sm hover:opacity-80"
+        href="/api/health"
+      >
+        Check API health
+      </a>
+    </main>
+  );
+}
