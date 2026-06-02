@@ -7,9 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-02
+
+### Added
+
+- Runnable starter code for the remaining blueprints, so a generated project opens with a working app and a green smoke test instead of an empty `src/`: `express-api` ([#53](https://github.com/LanNguyenSi/scaffoldkit/pull/53)), `nextjs-frontend` ([#54](https://github.com/LanNguyenSi/scaffoldkit/pull/54)), `nextjs-fullstack` ([#55](https://github.com/LanNguyenSi/scaffoldkit/pull/55)), `static-site` (Astro) ([#56](https://github.com/LanNguyenSi/scaffoldkit/pull/56)), `django-drf` ([#57](https://github.com/LanNguyenSi/scaffoldkit/pull/57)), `springboot-backend` ([#59](https://github.com/LanNguyenSi/scaffoldkit/pull/59)), and the `symfony-nextjs` monorepo ([#60](https://github.com/LanNguyenSi/scaffoldkit/pull/60))
+- `express` and `django-rest` runnable starters for the generic `rest-api` blueprint, alongside the existing FastAPI path ([#58](https://github.com/LanNguyenSi/scaffoldkit/pull/58))
+
+### Fixed
+
+- `symfony-backend`: corrected a double-escaped PSR-4 prefix and allow-listed the `symfony/runtime` Composer plugin so a generated project's autoload and bootstrap work, plus a runnable HealthController smoke test ([#52](https://github.com/LanNguyenSi/scaffoldkit/pull/52))
+- Wheel build: excluded `blueprints/` from the wheel `packages` selection so they ship only via `force-include`, fixing a latent Hatchling duplicate-path collision ([#52](https://github.com/LanNguyenSi/scaffoldkit/pull/52))
+- `springboot-backend`: fixed `application.yml` whitespace corruption and added the Maven wrapper ([#59](https://github.com/LanNguyenSi/scaffoldkit/pull/59))
+- `nextjs-frontend`: bumped `next` off the vulnerable 15.2.4 to a patched 15.x release ([#54](https://github.com/LanNguyenSi/scaffoldkit/pull/54))
+
 ### Removed
 
-- Removed the `reference-php-app` blueprint, an app-less ops/CI/security shell whose `project/` directory was only a placeholder mount. The runnable `symfony-backend` and `symfony-nextjs` blueprints cover real PHP/Symfony app and monorepo scaffolds.
+- Removed the `reference-php-app` blueprint, an app-less ops/CI/security shell whose `project/` directory was only a placeholder mount. The runnable `symfony-backend` and `symfony-nextjs` blueprints cover real PHP/Symfony app and monorepo scaffolds ([#61](https://github.com/LanNguyenSi/scaffoldkit/pull/61))
 
 ## [0.3.0] - 2026-06-01
 
@@ -105,7 +119,8 @@ A `Dockerfile` and `docker-compose.yml` are shipped for the Docker path.
 - Single-user local execution; no concurrency guards.
 - Blueprint variables are flat (no nested objects).
 
-[Unreleased]: https://github.com/LanNguyenSi/scaffoldkit/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/LanNguyenSi/scaffoldkit/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/LanNguyenSi/scaffoldkit/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/LanNguyenSi/scaffoldkit/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/LanNguyenSi/scaffoldkit/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/LanNguyenSi/scaffoldkit/releases/tag/v0.1.0
