@@ -1,0 +1,23 @@
+import express, { type Express, type Request, type Response } from "express";
+
+import { healthRouter } from "./routes/health.js";
+
+/**
+ * Build the {{ display_name }} Express application.
+ *
+ * The app is created without binding to a port so tests can import it
+ * directly. The entry point in src/index.ts is responsible for calling
+ * `app.listen()`.
+ */
+export function createApp(): Express {
+  const app = express();
+  app.use(express.json());
+
+  app.get("/", (_req: Request, res: Response) => {
+    res.json({ service: "{{ project_name }}", status: "ok" });
+  });
+
+  app.use(healthRouter);
+
+  return app;
+}

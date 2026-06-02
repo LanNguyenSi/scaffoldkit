@@ -1,0 +1,23 @@
+"""Smoke tests for the health route and application wiring.
+
+Run with the Django test runner:
+
+    python manage.py test
+"""
+from django.test import TestCase
+from django.urls import reverse
+
+
+class HealthRouteTests(TestCase):
+    def test_health_returns_ok(self) -> None:
+        response = self.client.get("/health")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"status": "ok"})
+
+    def test_health_route_is_registered(self) -> None:
+        self.assertEqual(reverse("health"), "/health")
+
+    def test_root_returns_service_descriptor(self) -> None:
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "ok")

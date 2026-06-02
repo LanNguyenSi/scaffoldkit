@@ -140,20 +140,91 @@ templates:
     target: requirements-dev.txt
     condition: is_fastapi
 
+  # Minimal runnable Express/TypeScript starter (app factory, entry point, one
+  # example route, smoke test) so an express rest-api scaffold ships real source
+  # instead of an empty src/. Mirrors the fastapi starter, gated on is_express.
   - source: package.json.j2
     target: package.json
+    condition: is_express
+
+  - source: tsconfig.json.j2
+    target: tsconfig.json
+    condition: is_express
+
+  - source: src/app.ts.j2
+    target: src/app.ts
+    condition: is_express
+
+  - source: src/index.ts.j2
+    target: src/index.ts
+    condition: is_express
+
+  - source: src/routes/health.ts.j2
+    target: src/routes/health.ts
+    condition: is_express
+
+  - source: tests/health.test.ts.j2
+    target: tests/health.test.ts
     condition: is_express
 
   - source: pom.xml.j2
     target: pom.xml
     condition: is_spring_boot
 
+  # Minimal runnable Django REST Framework starter (settings, urls, wsgi, one
+  # example app with a health route, smoke test) so a django-rest rest-api
+  # scaffold ships a project that `python manage.py runserver` / `test` can
+  # actually boot, gated on is_django_rest.
   - source: django-manage.py.j2
     target: manage.py
     condition: is_django_rest
 
   - source: django-pyproject.toml.j2
     target: pyproject.toml
+    condition: is_django_rest
+
+  - source: django-requirements.txt.j2
+    target: requirements.txt
+    condition: is_django_rest
+
+  - source: django-config/__init__.py.j2
+    target: config/__init__.py
+    condition: is_django_rest
+
+  - source: django-config/settings.py.j2
+    target: config/settings.py
+    condition: is_django_rest
+
+  - source: django-config/urls.py.j2
+    target: config/urls.py
+    condition: is_django_rest
+
+  - source: django-config/wsgi.py.j2
+    target: config/wsgi.py
+    condition: is_django_rest
+
+  - source: django-api/__init__.py.j2
+    target: api/__init__.py
+    condition: is_django_rest
+
+  - source: django-api/apps.py.j2
+    target: api/apps.py
+    condition: is_django_rest
+
+  - source: django-api/views.py.j2
+    target: api/views.py
+    condition: is_django_rest
+
+  - source: django-api/urls.py.j2
+    target: api/urls.py
+    condition: is_django_rest
+
+  - source: django-tests/__init__.py.j2
+    target: tests/__init__.py
+    condition: is_django_rest
+
+  - source: django-tests/test_health.py.j2
+    target: tests/test_health.py
     condition: is_django_rest
 
   - source: .dockerignore.j2
