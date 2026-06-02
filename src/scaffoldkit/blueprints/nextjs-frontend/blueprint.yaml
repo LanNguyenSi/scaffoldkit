@@ -170,6 +170,43 @@ templates:
     target: tsconfig.json
     condition: is_typescript
 
+  # --- Runnable app-router starter (App Router is the blueprint default) ---
+  - source: src/app/layout.tsx.j2
+    target: src/app/layout.tsx
+    condition: is_typescript
+
+  - source: src/app/page.tsx.j2
+    target: src/app/page.tsx
+    condition: is_typescript
+
+  - source: src/app/globals.css.j2
+    target: src/app/globals.css
+
+  - source: src/components/features/WelcomeCard.tsx.j2
+    target: src/components/features/WelcomeCard.tsx
+    condition: is_typescript
+
+  # --- Tailwind config (only when Tailwind is the styling choice) ---
+  - source: tailwind.config.ts.j2
+    target: tailwind.config.ts
+    condition: is_typescript
+
+  - source: postcss.config.mjs.j2
+    target: postcss.config.mjs
+
+  # --- Smoke test + runner config (vitest is the default runner) ---
+  - source: src/app/page.test.tsx.j2
+    target: src/app/page.test.tsx
+    condition: is_typescript
+
+  - source: vitest.config.ts.j2
+    target: vitest.config.ts
+    condition: is_typescript
+
+  - source: vitest.setup.ts.j2
+    target: vitest.setup.ts
+    condition: is_typescript
+
   - source: .dockerignore.j2
     target: .dockerignore
     condition: use_docker

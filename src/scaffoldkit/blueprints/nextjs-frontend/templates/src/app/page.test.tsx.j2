@@ -1,0 +1,19 @@
+{% if test_strategy == "vitest-only" or test_strategy == "vitest-and-playwright" -%}
+import { describe, it, expect } from "vitest";
+{% endif -%}
+import { render, screen } from "@testing-library/react";
+import HomePage from "./page";
+
+describe("HomePage", () => {
+  it("renders the project name heading", () => {
+    render(<HomePage />);
+    expect(
+      screen.getByRole("heading", { name: "{{ display_name }}", level: 1 })
+    ).toBeInTheDocument();
+  });
+
+  it("renders the welcome card", () => {
+    render(<HomePage />);
+    expect(screen.getByText(/Welcome to {{ project_name }}/)).toBeInTheDocument();
+  });
+});
