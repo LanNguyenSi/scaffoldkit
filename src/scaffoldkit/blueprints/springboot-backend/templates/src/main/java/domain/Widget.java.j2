@@ -1,0 +1,44 @@
+package {{ base_package }}.domain;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+/**
+ * Example domain entity.
+ *
+ * <p>Replace this with your real aggregate roots. It exists so the persistence
+ * layer has a mapped table to validate the JPA/Spring Data wiring end to end.
+ */
+@Entity
+@Table(name = "widgets")
+public class Widget {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+
+    protected Widget() {
+        // Required by JPA.
+    }
+
+    public Widget(String name) {
+        this.name = name;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+}

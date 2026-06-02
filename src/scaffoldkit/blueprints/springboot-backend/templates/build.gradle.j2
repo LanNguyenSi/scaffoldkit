@@ -41,6 +41,10 @@ dependencies {
   runtimeOnly "org.mariadb.jdbc:mariadb-java-client"
 {% endif -%}
   testImplementation "org.springframework.boot:spring-boot-starter-test"
+{% if use_auth -%}
+  testImplementation "org.springframework.security:spring-security-test"
+{% endif -%}
+  testRuntimeOnly "com.h2database:h2"
 {% if test_strategy != "junit-only" -%}
   testImplementation "org.testcontainers:junit-jupiter"
 {% endif -%}

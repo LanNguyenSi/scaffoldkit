@@ -1,0 +1,10 @@
+package {{ base_package }}.web.dto;
+
+/**
+ * Response payload for the {@code GET /health} endpoint.
+ *
+ * <p>A small immutable DTO so the web layer never leaks domain or persistence
+ * types across the HTTP boundary.
+ */
+public record HealthResponse(String status, String service) {
+}

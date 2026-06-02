@@ -1,0 +1,29 @@
+package {{ base_package }}.security;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.web.SecurityFilterChain;
+
+/**
+ * Baseline HTTP security for the Spring MVC stack.
+ *
+ * <p>Permits the unauthenticated {@code /health} probe and the actuator health
+ * group, and requires authentication for everything else. Wire your real
+ * {{ auth_method }} authentication (resource server, filters, providers) on top
+ * of this chain.
+ */
+@Configuration
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf(AbstractHttpConfigurer::disable)
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/health", "/actuator/health").permitAll()
+                .anyRequest().authenticated());
+        return http.build();
+    }
+}

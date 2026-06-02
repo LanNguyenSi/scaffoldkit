@@ -1,0 +1,28 @@
+package {{ base_package }}.web;
+
+import {{ base_package }}.service.HealthService;
+import {{ base_package }}.web.dto.HealthResponse;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * Liveness/readiness endpoint.
+ *
+ * <p>Controllers own HTTP only: they delegate to a service and shape the
+ * response. The handler returns a typed DTO directly, which works for both the
+ * Spring MVC and WebFlux stacks.
+ */
+@RestController
+public class HealthController {
+
+    private final HealthService healthService;
+
+    public HealthController(HealthService healthService) {
+        this.healthService = healthService;
+    }
+
+    @GetMapping("/health")
+    public HealthResponse health() {
+        return healthService.check();
+    }
+}

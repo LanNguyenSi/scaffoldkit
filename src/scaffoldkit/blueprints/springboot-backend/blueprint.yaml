@@ -153,8 +153,54 @@ templates:
   - source: src/main/java/Application.java.j2
     target: src/main/java/{{ base_package | replace('.', '/') }}/Application.java
 
+  - source: src/main/java/web/HealthController.java.j2
+    target: src/main/java/{{ base_package | replace('.', '/') }}/web/HealthController.java
+
+  - source: src/main/java/web/dto/HealthResponse.java.j2
+    target: src/main/java/{{ base_package | replace('.', '/') }}/web/dto/HealthResponse.java
+
+  - source: src/main/java/service/HealthService.java.j2
+    target: src/main/java/{{ base_package | replace('.', '/') }}/service/HealthService.java
+
+  - source: src/main/java/domain/Widget.java.j2
+    target: src/main/java/{{ base_package | replace('.', '/') }}/domain/Widget.java
+
+  - source: src/main/java/repository/WidgetRepository.java.j2
+    target: src/main/java/{{ base_package | replace('.', '/') }}/repository/WidgetRepository.java
+
+  - source: src/main/java/security/SecurityConfig.java.j2
+    target: src/main/java/{{ base_package | replace('.', '/') }}/security/SecurityConfig.java
+    condition: is_spring_mvc_auth
+
+  - source: src/main/java/security/SecurityConfigReactive.java.j2
+    target: src/main/java/{{ base_package | replace('.', '/') }}/security/SecurityConfig.java
+    condition: is_webflux_auth
+
   - source: src/main/resources/application.yml.j2
     target: src/main/resources/application.yml
+
+  - source: src/test/java/HealthControllerSmokeTest.java.j2
+    target: src/test/java/{{ base_package | replace('.', '/') }}/HealthControllerSmokeTest.java
+    condition: is_spring_mvc
+
+  - source: src/test/java/HealthControllerReactiveSmokeTest.java.j2
+    target: src/test/java/{{ base_package | replace('.', '/') }}/HealthControllerSmokeTest.java
+    condition: is_webflux
+
+  - source: src/test/resources/application.yml.j2
+    target: src/test/resources/application.yml
+
+  - source: mvnw.j2
+    target: mvnw
+    condition: is_maven
+
+  - source: mvnw.cmd.j2
+    target: mvnw.cmd
+    condition: is_maven
+
+  - source: .mvn/wrapper/maven-wrapper.properties.j2
+    target: .mvn/wrapper/maven-wrapper.properties
+    condition: is_maven
 
   - source: .dockerignore.j2
     target: .dockerignore

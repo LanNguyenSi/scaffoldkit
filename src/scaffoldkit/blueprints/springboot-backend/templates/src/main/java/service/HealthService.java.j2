@@ -1,0 +1,28 @@
+package {{ base_package }}.service;
+
+import {{ base_package }}.repository.WidgetRepository;
+import {{ base_package }}.web.dto.HealthResponse;
+import org.springframework.stereotype.Service;
+
+/**
+ * Application service backing the health endpoint.
+ *
+ * <p>Touches the repository so the slice exercises the full web -> service ->
+ * repository wiring rather than returning a hard-coded constant.
+ */
+@Service
+public class HealthService {
+
+    private final WidgetRepository widgetRepository;
+
+    public HealthService(WidgetRepository widgetRepository) {
+        this.widgetRepository = widgetRepository;
+    }
+
+    public HealthResponse check() {
+        // A trivial query proves the persistence layer is wired and reachable.
+        long widgets = widgetRepository.count();
+        String status = widgets >= 0 ? "ok" : "degraded";
+        return new HealthResponse(status, "{{ project_name }}");
+    }
+}
