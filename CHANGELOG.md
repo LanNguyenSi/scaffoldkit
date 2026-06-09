@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-06-09
+
+Patch release fixing the generated blueprints: the Next.js templates shipped a version exposed to CVE-2025-66478, and the nextjs-frontend blueprint had test-runner and language-choice rough edges.
+
+### Fixed
+
+- **Next.js bumped off CVE-2025-66478 in the shipped blueprints** (PRs #64, #63). The `saas-dashboard`, `static-site`, `symfony-nextjs`, and `nextjs-fullstack` blueprints generated a `package.json` pinning a vulnerable Next.js; the templates now pin a patched version, so newly scaffolded projects are not born with the CVE. A blueprint-contract audit test guards the pins.
+- **`nextjs-frontend` test-runner config is gated per strategy** (PR #65), dropping the orphaned JavaScript-path config that a TypeScript scaffold left behind.
+- **`nextjs-fullstack` scaffold output is prettier-clean** (PR #63), so a freshly generated project passes its own formatter.
+
+### Changed
+
+- **Dropped the unsupported JavaScript language choice from the `nextjs-frontend` blueprint** (PR #66); the blueprint is TypeScript-only.
+
 ## [0.4.0] - 2026-06-02
 
 ### Added
