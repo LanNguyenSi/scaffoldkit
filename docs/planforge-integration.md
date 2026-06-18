@@ -8,7 +8,7 @@
 scaffoldkit from-planforge ./scaffoldkit-input.json --target ./my-project
 ```
 
-Same flags as `scaffoldkit new` except for `--var` / `--non-interactive` / `--yes`: planforge supplies those values. The supported flags are `--target`, `--dry-run`, `--overwrite`, `--no-install`, `--blueprints-dir`.
+Same flags as `scaffoldkit new` except for `--var` / `--non-interactive` / `--yes`: planforge supplies those values. The supported flags are `--target`, `--dry-run`, `--overwrite`, `--no-install`, `--blueprints-dir`, and `--no-ai-context`. The last is specific to `from-planforge`: it suppresses the blueprint's AI-context files (the `.ai/` tree and `AI_CONTEXT.md`), which is useful when the caller already owns its own agent context, e.g. the agent-planforge container whose `.ai/` would otherwise be clobbered by `--overwrite`.
 
 If the planforge-recommended blueprint isn't installed locally, the resolver walks `blueprintCandidates` in order and falls back to the first match, printing which fallback it picked. If none match, you get the candidate list plus the locally available blueprints in the error output.
 

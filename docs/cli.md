@@ -81,6 +81,15 @@ source .venv/bin/activate
 uv pip install -e ".[dev]"
 ```
 
+## Global options
+
+These apply to the top-level `scaffoldkit` command itself, before any subcommand.
+
+| Option | Description |
+|--------|-------------|
+| `-V, --version` | Print the installed ScaffoldKit version and exit. The version is read from package metadata, so it always matches the installed distribution. |
+| `--help` | Show help. With no subcommand, `scaffoldkit` prints help by default. |
+
 ## `scaffoldkit new`
 
 Generate a project from a blueprint.
@@ -155,7 +164,7 @@ scaffoldkit from-planforge ./scaffoldkit-input.json --target ./my-project
 
 Selects the recommended blueprint (with fallback resolution), maps planforge `suggestedVariables` onto the blueprint contract, and applies a small set of inference rules for things like `database`, `auth_strategy`, and `use_docker`. See [planforge-integration.md](planforge-integration.md) for the full schema and inference rules.
 
-Same `--target`, `--dry-run`, `--overwrite`, `--no-install`, `--blueprints-dir` flags as `new`.
+Same `--target`, `--dry-run`, `--overwrite`, `--no-install`, `--blueprints-dir` flags as `new`, plus a `from-planforge`-only `--no-ai-context` flag that suppresses the blueprint's AI-context files (the `.ai/` tree and `AI_CONTEXT.md`) for callers that already provide their own agent context.
 
 ## `scaffoldkit init-blueprint`
 

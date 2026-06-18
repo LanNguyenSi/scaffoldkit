@@ -27,7 +27,7 @@ Don't want Python on your host? Use `./install.sh --docker` instead. See [docs/c
 ```
 Generation completed successfully!
 
-Files created (9):
+Files created (15):
   README.md
   pyproject.toml
   .github/workflows/ci.yml
@@ -35,6 +35,12 @@ Files created (9):
   docs/ways-of-working.md
   docs/adrs/0001-architecture.md
   AI_CONTEXT.md
+  src/__init__.py
+  src/main.py
+  src/commands/__init__.py
+  src/commands/run.py
+  tests/__init__.py
+  tests/test_run.py
   .editorconfig
   .gitignore
 
@@ -83,7 +89,7 @@ ruff format src/ tests/                             # format
 mypy src/scaffoldkit/                               # type check
 ```
 
-CI runs lint, mypy strict, pytest on Python 3.11/3.12/3.13, and a build+install verification on every push and PR to `main`.
+CI runs lint, mypy strict, pytest on Python 3.11/3.12/3.13, and a build+install verification on every push and PR to `master`.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, coding standards, and PR process. Release history lives in [CHANGELOG.md](CHANGELOG.md).
 
