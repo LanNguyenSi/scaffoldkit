@@ -20,6 +20,9 @@ description: "What this blueprint generates"
 version: "1.0.0"
 stack: "nextjs"
 
+metadata:                 # Optional: free-form keys merged into the template context
+  architecture: "layered"
+
 variables:
   - name: project_name
     description: "Project slug"
@@ -72,6 +75,8 @@ Authentication is enabled.
 ```
 
 The generator also injects derived flags (`is_python`, `is_typescript`, `is_fastapi`, `is_nextjs_fullstack`, `is_uv`, `is_yaml_config`, etc.) so templates can branch on language/framework/package-manager without re-implementing string compares. See [architecture.md](architecture.md) for the full list.
+
+Any keys under the blueprint's top-level `metadata` map are also merged into the template context verbatim, so blueprint authors can expose extra template variables (for example an `architecture` label) without adding a user-facing prompt.
 
 ## Shipped blueprints
 

@@ -56,6 +56,10 @@ A `scaffoldkit new` invocation runs the same pipeline whether the variables come
 
 There isn't one. Generation is a one-shot operation. There is no daemon, no incremental rebuild, and no shared state between runs. Re-running into the same target directory requires `--overwrite`.
 
+## Path containment
+
+Rendered target paths come from untrusted sources (user `--var` input and third-party blueprints), so every generated file and directory is routed through `generator._safe_join`. It resolves the rendered path against the target directory and raises if the result escapes it, refusing absolute paths and `..` traversal. An unsafe entry is recorded as a generation error and skipped rather than written outside the target tree. This containment makes running a blueprint from an untrusted source safe by construction.
+
 ## Design principles
 
 - **Declarative over hard-coded.** Blueprints are YAML, templates are Jinja2. Adding a stack is adding a folder, not editing the engine.
@@ -98,8 +102,8 @@ scaffoldkit/
 │       ├── variable_conditions.py
 │       ├── planforge.py
 │       ├── scaffold_blueprint.py
-│       └── blueprints/        # 13 shipped blueprints
-├── tests/                     # 78 tests: models, loader, validators, renderer, filesystem, generator, CLI, integration
+│       └── blueprints/        # 12 shipped blueprints
+├── tests/                     # pytest suite: models, loader, validators, renderer, filesystem, generator, CLI, integration
 ├── .github/workflows/ci.yml   # lint, mypy strict, pytest 3.11/3.12/3.13, build+install
 ├── CONTRIBUTING.md
 ├── CHANGELOG.md
@@ -108,7 +112,7 @@ scaffoldkit/
 
 ## Test suite
 
-78 tests cover:
+The pytest suite covers:
 
 - **Models.** Data model construction and validation.
 - **Blueprint loading.** Discovery, parsing, error handling.
@@ -119,7 +123,7 @@ scaffoldkit/
 - **CLI.** Command help, blueprint listing, error paths.
 - **Integration.** End-to-end generation across stack/style/feature variations.
 
-CI runs ruff lint+format, mypy strict, pytest on Python 3.11, 3.12, 3.13, and a build+install verification on every push and PR to `main`.
+CI runs ruff lint+format, mypy strict, pytest on Python 3.11, 3.12, 3.13, and a build+install verification on every push and PR to `master`.
 
 ## Assumptions and limits
 

@@ -56,11 +56,16 @@ src/scaffoldkit/
   renderer.py         # Jinja2 template rendering
   models.py           # Pydantic data models
   validators.py       # Input validation
+  variable_conditions.py # Conditional-variable pruning
   filesystem.py       # File system operations
+  planforge.py        # agent-planforge export schema and variable mapping
+  scaffold_blueprint.py # init-blueprint starter generator
 
 blueprints/           # Built-in blueprint definitions
 tests/                # Test suite
 ```
+
+See [docs/architecture.md](docs/architecture.md#module-map) for the full module map.
 
 ## Adding a New Blueprint
 
@@ -82,7 +87,7 @@ tests/                # Test suite
 
 ## Pull Request Process
 
-1. Fork the repository and create a feature branch from `main`.
+1. Fork the repository and create a feature branch from `master`.
 2. Make your changes with clear, focused commits.
 3. Add or update tests for your changes.
 4. Run the full test suite and ensure it passes.

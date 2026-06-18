@@ -133,7 +133,8 @@ A `Dockerfile` and `docker-compose.yml` are shipped for the Docker path.
 - Single-user local execution; no concurrency guards.
 - Blueprint variables are flat (no nested objects).
 
-[Unreleased]: https://github.com/LanNguyenSi/scaffoldkit/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/LanNguyenSi/scaffoldkit/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/LanNguyenSi/scaffoldkit/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/LanNguyenSi/scaffoldkit/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/LanNguyenSi/scaffoldkit/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/LanNguyenSi/scaffoldkit/compare/v0.1.0...v0.2.0
