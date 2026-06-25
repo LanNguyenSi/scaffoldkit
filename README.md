@@ -4,6 +4,46 @@ AI-aided project scaffolding from declarative blueprints.
 
 ScaffoldKit generates complete project skeletons (source layout, docs, ways-of-working, ADRs, page templates, AI context files) from a folder of YAML blueprints plus Jinja2 templates. It is the scaffolding engine behind [project-forge](https://github.com/LanNguyenSi/project-forge) and consumes the `scaffoldkit-input.json` export from [agent-planforge](https://github.com/LanNguyenSi/agent-planforge), so blueprints written here flow straight into both downstream tools.
 
+## How it works
+
+ScaffoldKit routes every invocation through a four-stage pipeline: input resolution, blueprint loading, generation, and file output.
+
+```mermaid
+flowchart TD
+    subgraph Inputs["Inputs"]
+        A["--var flags / questionary TUI<br/>tui.py"]
+        B["scaffoldkit-input.json<br/>planforge.py"]
+        C["cli.py"]
+    end
+
+    subgraph Loader["blueprint_loader.py"]
+        D{"get_blueprints_dir()"}
+        E[("blueprint.yaml")]
+        F["Blueprint<br/>models.py"]
+    end
+
+    subgraph Engine["generator.py"]
+        G["prune_inactive_variables()<br/>variable_conditions.py"]
+        H["validate_variables()<br/>validators.py"]
+        I["render_template()<br/>renderer.py"]
+        J["write_file / copy_file<br/>filesystem.py"]
+    end
+
+    K[("--target/<br/>project tree")]
+
+    A --> C
+    B --> C
+    C --> D
+    D -->|"env / checkout / packaged"| E
+    E --> F
+    F --> G
+    C -->|variables| G
+    G --> H
+    H --> I
+    I --> J
+    J --> K
+```
+
 ## Try it in 60 seconds
 
 ```bash
