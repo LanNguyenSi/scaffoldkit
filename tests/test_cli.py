@@ -1,6 +1,7 @@
 """Tests for CLI commands."""
 
 import json
+import subprocess
 from importlib.metadata import version
 
 from typer.testing import CliRunner
@@ -417,3 +418,98 @@ class TestFromPlanforgeCommand:
         assert result.exit_code == 1
         assert "No compatible blueprint" in result.output
         assert "missing-blueprint" in result.output
+
+
+_NPM_INSTALL_VARS = [
+    "--var",
+    "project_name=npm-test",
+    "--var",
+    "display_name=Npm Test",
+    "--var",
+    "description=npm install test",
+    "--var",
+    "language=typescript",
+    "--var",
+    "cli_framework=commander",
+    "--var",
+    "distribution=binary",
+    "--var",
+    "ai_context=false",
+]
+
+
+class TestNpmInstall:
+    def test_success_calls_npm_install(self, tmp_path, monkeypatch):
+        calls = []
+
+        def fake_run(*args, **kwargs):
+            calls.append((args, kwargs))
+
+        monkeypatch.setattr("scaffoldkit.cli.subprocess.run", fake_run)
+
+        target = tmp_path / "npm-success"
+        result = runner.invoke(
+            app,
+            [
+                "new",
+                "cli-tool",
+                "--target",
+                str(target),
+                "--non-interactive",
+                "--yes",
+                *_NPM_INSTALL_VARS,
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        assert len(calls) == 1
+        call_args, call_kwargs = calls[0]
+        assert call_args[0] == ["npm", "install"]
+        assert call_kwargs["cwd"] == target
+        assert call_kwargs["check"] is True
+
+    def test_called_process_error_is_swallowed(self, tmp_path, monkeypatch):
+        def fake_run(*args, **kwargs):
+            raise subprocess.CalledProcessError(returncode=1, cmd=["npm", "install"])
+
+        monkeypatch.setattr("scaffoldkit.cli.subprocess.run", fake_run)
+
+        target = tmp_path / "npm-cpe"
+        result = runner.invoke(
+            app,
+            [
+                "new",
+                "cli-tool",
+                "--target",
+                str(target),
+                "--non-interactive",
+                "--yes",
+                *_NPM_INSTALL_VARS,
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "npm install failed with exit code 1" in result.output
+
+    def test_file_not_found_is_swallowed(self, tmp_path, monkeypatch):
+        def fake_run(*args, **kwargs):
+            raise FileNotFoundError
+
+        monkeypatch.setattr("scaffoldkit.cli.subprocess.run", fake_run)
+
+        target = tmp_path / "npm-fnf"
+        result = runner.invoke(
+            app,
+            [
+                "new",
+                "cli-tool",
+                "--target",
+                str(target),
+                "--non-interactive",
+                "--yes",
+                *_NPM_INSTALL_VARS,
+            ],
+        )
+
+        assert result.exit_code == 0, result.output
+        assert "npm not found" in result.output

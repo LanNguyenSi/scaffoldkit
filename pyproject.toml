@@ -82,6 +82,10 @@ select = [
 "src/scaffoldkit/models.py" = ["TCH003"]  # Pydantic needs Path at runtime
 "src/scaffoldkit/cli.py" = ["TCH003"]    # Typer evaluates annotations at runtime
 
+[tool.coverage.run]
+source = ["src/scaffoldkit"]
+omit = ["src/scaffoldkit/blueprints/**"]
+
 [tool.mypy]
 python_version = "3.11"
 strict = true

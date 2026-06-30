@@ -69,7 +69,7 @@ jobs:
         run: uv sync --python ${{ matrix.python-version }} --extra dev
 
       - name: Run tests
-        run: uv run pytest tests/ -v --tb=short
+        run: uv run pytest tests/ -v --tb=short --cov=src/scaffoldkit --cov-report=term-missing --cov-fail-under=83
 
   build:
     name: Build Package
