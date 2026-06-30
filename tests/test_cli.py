@@ -440,6 +440,10 @@ _NPM_INSTALL_VARS = [
 
 class TestNpmInstall:
     def test_success_calls_npm_install(self, tmp_path, monkeypatch):
+        # _run_npm_install only runs when the generated target contains a
+        # package.json (the cli.py gate). The cli-tool blueprint with
+        # language=typescript emits one, so omitting --no-install reaches the
+        # subprocess call below.
         calls = []
 
         def fake_run(*args, **kwargs):
@@ -462,11 +466,14 @@ class TestNpmInstall:
         )
 
         assert result.exit_code == 0, result.output
+        assert (target / "package.json").exists()  # precondition for the npm gate
         assert len(calls) == 1
         call_args, call_kwargs = calls[0]
         assert call_args[0] == ["npm", "install"]
         assert call_kwargs["cwd"] == target
         assert call_kwargs["check"] is True
+        assert call_kwargs["capture_output"] is False
+        assert "npm install completed" in result.output
 
     def test_called_process_error_is_swallowed(self, tmp_path, monkeypatch):
         def fake_run(*args, **kwargs):
