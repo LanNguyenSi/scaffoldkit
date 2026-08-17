@@ -111,6 +111,18 @@ Directories (6):
 
 Both depend on this repo in production. Changes to blueprint contracts here ripple into those consumers.
 
+Because agent-planforge's `server/Dockerfile` pins ScaffoldKit to a fixed commit SHA (`SCAFFOLDKIT_REF`), every merge to `master` here auto-opens a `chore(deps): bump scaffoldkit to <sha7>` task in agent-planforge's agent-tasks project (see `.github/workflows/notify-planforge.yml` and `scripts/notify-planforge.sh`). This keeps the drift between ScaffoldKit's default branch and the pinned SHA visible instead of silent; the task carries the compare URL, the changed files, and a re-pickup checklist for whoever bumps the pin.
+
+**Provisioning the notification.** The workflow no-ops (green, with a visible `::notice::`) until the operator provisions the bot token:
+
+```bash
+gh secret set PLANFORGE_BOT_TOKEN --repo LanNguyenSi/scaffoldkit
+```
+
+The token needs `tasks:create` scope to open the bump task, and `tasks:update` scope to respec (supersede) an older open bump task when a newer commit lands before the previous one was picked up. The bot identity also needs membership on agent-planforge's agent-tasks project: project access is enforced independently of token scopes, so a correctly-scoped bot that isn't a project member gets a 403 "No project access" on the very first call and the workflow goes red. Supersede is best-effort: the bot can only respec tasks it created itself by default (creator-only respec is the agent-tasks default; whether agent-planforge's project overrides that via `allowNonCreatorRespec` has not been verified against the live project config), so if the previous bump task was filed by a human or a different identity, the respec attempt fails quietly (logged as a warning) and the new task is still created.
+
+After provisioning the token and project access, verify the first push to `master` shows a green "Notify Planforge" run in Actions.
+
 ## Development
 
 ```bash

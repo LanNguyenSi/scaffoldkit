@@ -1,0 +1,38 @@
+name: Notify Planforge
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: notify-planforge
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    name: Notify agent-planforge of new HEAD
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history: scripts/notify-planforge.sh diffs old..new HEAD.
+          fetch-depth: 0
+
+      - name: Notify agent-planforge
+        env:
+          # Absent until the operator runs `gh secret set PLANFORGE_BOT_TOKEN`
+          # (see README) - the script no-ops gracefully until then.
+          PLANFORGE_BOT_TOKEN: ${{ secrets.PLANFORGE_BOT_TOKEN }}
+          PLANFORGE_BASE_URL: https://agent-tasks.opentriologue.ai
+          # agent-planforge's project id in agent-tasks (GET
+          # /api/projects/available); not a secret, just a resource id.
+          PLANFORGE_PROJECT_ID: 5ff50a9c-de7b-4cfe-a2b5-22cd7fb0b109
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          NEW_SHA: ${{ github.sha }}
+          OLD_SHA: ${{ github.event.before }}
+        run: scripts/notify-planforge.sh

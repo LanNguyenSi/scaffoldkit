@@ -104,7 +104,11 @@ scaffoldkit/
 │       ├── scaffold_blueprint.py
 │       └── blueprints/        # 12 shipped blueprints
 ├── tests/                     # pytest suite: models, loader, validators, renderer, filesystem, generator, CLI, integration
-├── .github/workflows/ci.yml   # lint, mypy strict, pytest 3.11/3.12/3.13, build+install
+├── scripts/
+│   └── notify-planforge.sh    # files an agent-planforge bump task on master push
+├── .github/workflows/
+│   ├── ci.yml                 # lint, mypy strict, pytest 3.11/3.12/3.13, build+install
+│   └── notify-planforge.yml   # runs scripts/notify-planforge.sh on push to master
 ├── CONTRIBUTING.md
 ├── CHANGELOG.md
 └── LICENSE
