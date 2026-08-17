@@ -113,6 +113,14 @@ Both depend on this repo in production. Changes to blueprint contracts here ripp
 
 Because agent-planforge's `server/Dockerfile` pins ScaffoldKit to a fixed commit SHA (`SCAFFOLDKIT_REF`), every merge to `master` here auto-opens a `chore(deps): bump scaffoldkit to <sha7>` task in agent-planforge's agent-tasks project (see `.github/workflows/notify-planforge.yml` and `scripts/notify-planforge.sh`). This keeps the drift between ScaffoldKit's default branch and the pinned SHA visible instead of silent; the task carries the compare URL, the changed files, and a re-pickup checklist for whoever bumps the pin.
 
+**Provisioning the notification.** The workflow no-ops (green, with a visible `::notice::`) until the operator provisions the bot token:
+
+```bash
+gh secret set PLANFORGE_BOT_TOKEN --repo LanNguyenSi/scaffoldkit
+```
+
+The token needs `tasks:create` scope to open the bump task, and `tasks:update` scope to respec (supersede) an older open bump task when a newer commit lands before the previous one was picked up. Supersede is best-effort: the bot can only respec tasks it created itself (agent-planforge's project has `allowNonCreatorRespec: false`), so if the previous bump task was filed by a human or a different identity, the respec attempt fails quietly (logged as a warning) and the new task is still created.
+
 ## Development
 
 ```bash

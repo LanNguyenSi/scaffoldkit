@@ -7,10 +7,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: notify-planforge
+  cancel-in-progress: false
+
 jobs:
   notify:
     name: Notify agent-planforge of new HEAD
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Checkout
         uses: actions/checkout@v4

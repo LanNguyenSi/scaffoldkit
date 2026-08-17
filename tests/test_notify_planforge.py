@@ -5,6 +5,13 @@ never touches the live agent-tasks backend) and inspects the request(s) it
 sends: method, path, auth header presence, JSON body shape (title,
 externalRef, description contents), and the idempotency/supersede/no-op
 control flow.
+
+Every test drives the script against a throwaway two-commit git repo built
+fresh under ``tmp_path`` (see ``_make_hermetic_repo``/``hermetic_repo``)
+rather than this checkout's own history. That keeps the suite independent of
+how much history the checkout that runs it has - it passes the same way in a
+full local clone and in CI's shallow (``fetch-depth: 1``) checkout, where
+``git rev-parse HEAD~1`` against the real repo would fail.
 """
 
 from __future__ import annotations
@@ -23,6 +30,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = REPO_ROOT / "scripts" / "notify-planforge.sh"
 PROJECT_ID = "5ff50a9c-de7b-4cfe-a2b5-22cd7fb0b109"
 TOKEN = "test-planforge-bot-token"
+ALL_ZERO_SHA = "0000000000000000000000000000000000000000"
 
 
 @dataclass
@@ -106,19 +114,36 @@ def _run_script(env_overrides: dict, cwd: Path) -> subprocess.CompletedProcess:
     )
 
 
+def _make_hermetic_repo(
+    tmp_path: Path, second_commit_message: str = "feat: second commit"
+) -> tuple[Path, str, str]:
+    """Build a throwaway two-commit git repo under ``tmp_path`` and return
+    ``(repo_dir, new_sha, old_sha)``.
+
+    This never touches REPO_ROOT's real git history, so it behaves
+    identically whether the checkout running the suite is a full clone or a
+    CI shallow (depth-1) checkout.
+    """
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git("init", "-q", cwd=repo)
+    _git("config", "user.email", "ci@example.com", cwd=repo)
+    _git("config", "user.name", "CI", cwd=repo)
+    _git("commit", "--allow-empty", "-q", "-m", "Initial commit", cwd=repo)
+    old_sha = _git("rev-parse", "HEAD", cwd=repo)
+    _git("commit", "--allow-empty", "-q", "-m", second_commit_message, cwd=repo)
+    new_sha = _git("rev-parse", "HEAD", cwd=repo)
+    return repo, new_sha, old_sha
+
+
 @pytest.fixture
-def real_commits() -> tuple[str, str]:
-    """(new_sha, old_sha) = (HEAD, HEAD~1) of this scaffoldkit checkout, so
-    the script's real `git log`/`git diff` calls resolve against real
-    history without mutating this repo."""
-    new_sha = _git("rev-parse", "HEAD", cwd=REPO_ROOT)
-    old_sha = _git("rev-parse", "HEAD~1", cwd=REPO_ROOT)
-    return new_sha, old_sha
+def hermetic_repo(tmp_path: Path) -> tuple[Path, str, str]:
+    return _make_hermetic_repo(tmp_path)
 
 
 class TestMissingToken:
-    def test_noop_when_token_absent(self, real_commits: tuple[str, str]):
-        new_sha, old_sha = real_commits
+    def test_noop_when_token_absent(self, hermetic_repo: tuple[Path, str, str]):
+        repo, new_sha, old_sha = hermetic_repo
         with MockPlanforgeServer(routes={}) as server:
             result = _run_script(
                 {
@@ -128,7 +153,7 @@ class TestMissingToken:
                     "NEW_SHA": new_sha,
                     "OLD_SHA": old_sha,
                 },
-                cwd=REPO_ROOT,
+                cwd=repo,
             )
             assert result.returncode == 0
             assert server.requests == []
@@ -136,8 +161,8 @@ class TestMissingToken:
 
 
 class TestCreatesTask:
-    def test_creates_task_with_expected_shape(self, real_commits: tuple[str, str]):
-        new_sha, old_sha = real_commits
+    def test_creates_task_with_expected_shape(self, hermetic_repo: tuple[Path, str, str]):
+        repo, new_sha, old_sha = hermetic_repo
         new_sha7 = new_sha[:7]
         routes = {
             ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (200, {"tasks": []}),
@@ -156,7 +181,7 @@ class TestCreatesTask:
                     "NEW_SHA": new_sha,
                     "OLD_SHA": old_sha,
                 },
-                cwd=REPO_ROOT,
+                cwd=repo,
             )
             assert result.returncode == 0, result.stderr
             assert [(r.method, r.path.split("?")[0]) for r in server.requests] == [
@@ -185,9 +210,70 @@ class TestCreatesTask:
         assert TOKEN not in result.stderr
 
 
+class TestNoCompareDescription:
+    """OLD_SHA sentinel / unreachable-commit paths both fall back to the
+    documented no-compare description instead of trying (and failing) to
+    diff against a commit that isn't there."""
+
+    def test_initial_push_all_zero_old_sha(self, hermetic_repo: tuple[Path, str, str]):
+        repo, new_sha, _old_sha = hermetic_repo
+        routes = {
+            ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (200, {"tasks": []}),
+            ("POST", f"/api/projects/{PROJECT_ID}/tasks"): (
+                201,
+                {"task": {"id": "created-task-initial-push"}},
+            ),
+        }
+        with MockPlanforgeServer(routes=routes) as server:
+            result = _run_script(
+                {
+                    "PLANFORGE_BOT_TOKEN": TOKEN,
+                    "PLANFORGE_BASE_URL": server.base_url,
+                    "PLANFORGE_PROJECT_ID": PROJECT_ID,
+                    "GITHUB_REPOSITORY": "LanNguyenSi/scaffoldkit",
+                    "NEW_SHA": new_sha,
+                    "OLD_SHA": ALL_ZERO_SHA,
+                },
+                cwd=repo,
+            )
+            assert result.returncode == 0, result.stderr
+            create_req = server.requests[-1]
+            description = create_req.json_body["description"]
+            assert "no prior commit to diff against" in description
+            assert "(initial push; no prior commit to diff against)" in description
+
+    def test_unreachable_old_sha(self, hermetic_repo: tuple[Path, str, str]):
+        repo, new_sha, _old_sha = hermetic_repo
+        unreachable_sha = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+        routes = {
+            ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (200, {"tasks": []}),
+            ("POST", f"/api/projects/{PROJECT_ID}/tasks"): (
+                201,
+                {"task": {"id": "created-task-unreachable"}},
+            ),
+        }
+        with MockPlanforgeServer(routes=routes) as server:
+            result = _run_script(
+                {
+                    "PLANFORGE_BOT_TOKEN": TOKEN,
+                    "PLANFORGE_BASE_URL": server.base_url,
+                    "PLANFORGE_PROJECT_ID": PROJECT_ID,
+                    "GITHUB_REPOSITORY": "LanNguyenSi/scaffoldkit",
+                    "NEW_SHA": new_sha,
+                    "OLD_SHA": unreachable_sha,
+                },
+                cwd=repo,
+            )
+            assert result.returncode == 0, result.stderr
+            create_req = server.requests[-1]
+            description = create_req.json_body["description"]
+            assert "no prior commit to diff against" in description
+            assert "(initial push; no prior commit to diff against)" in description
+
+
 class TestIdempotentSkip:
-    def test_skips_when_open_task_for_same_sha_exists(self, real_commits: tuple[str, str]):
-        new_sha, old_sha = real_commits
+    def test_skips_when_open_task_for_same_sha_exists(self, hermetic_repo: tuple[Path, str, str]):
+        repo, new_sha, old_sha = hermetic_repo
         new_sha7 = new_sha[:7]
         routes = {
             ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (
@@ -214,7 +300,7 @@ class TestIdempotentSkip:
                     "NEW_SHA": new_sha,
                     "OLD_SHA": old_sha,
                 },
-                cwd=REPO_ROOT,
+                cwd=repo,
             )
             assert result.returncode == 0, result.stderr
             # Only the lookup GET happened - no POST create.
@@ -223,12 +309,65 @@ class TestIdempotentSkip:
             ]
         assert "already exists" in result.stderr
 
+    def test_skips_when_same_sha_task_is_not_first_in_array(
+        self, hermetic_repo: tuple[Path, str, str]
+    ):
+        """The same-sha match must be found anywhere in the filtered
+        array, not just at index 0."""
+        repo, new_sha, old_sha = hermetic_repo
+        new_sha7 = new_sha[:7]
+        older_fake_sha = "2222222222222222222222222222222222bbbb"
+        routes = {
+            ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (
+                200,
+                {
+                    "tasks": [
+                        {
+                            "id": "existing-older-sha-first",
+                            "status": "open",
+                            "title": "chore(deps): bump scaffoldkit to 2222222",
+                            "description": f"Commit: {older_fake_sha} (2222222)\n",
+                        },
+                        {
+                            "id": "existing-same-sha-second",
+                            "status": "open",
+                            "title": f"chore(deps): bump scaffoldkit to {new_sha7}",
+                            "description": f"Commit: {new_sha} ({new_sha7})\n",
+                        },
+                    ]
+                },
+            ),
+        }
+        with MockPlanforgeServer(routes=routes) as server:
+            result = _run_script(
+                {
+                    "PLANFORGE_BOT_TOKEN": TOKEN,
+                    "PLANFORGE_BASE_URL": server.base_url,
+                    "PLANFORGE_PROJECT_ID": PROJECT_ID,
+                    "GITHUB_REPOSITORY": "LanNguyenSi/scaffoldkit",
+                    "NEW_SHA": new_sha,
+                    "OLD_SHA": old_sha,
+                },
+                cwd=repo,
+            )
+            assert result.returncode == 0, result.stderr
+            # Same-sha match found (even though not first) -> skip
+            # entirely, no respec/create calls fired.
+            assert [(r.method, r.path.split("?")[0]) for r in server.requests] == [
+                ("GET", f"/api/projects/{PROJECT_ID}/tasks"),
+            ]
+        assert "existing-same-sha-second" in result.stderr
+        assert "already exists" in result.stderr
+
 
 class TestSupersede:
-    def test_supersedes_older_open_task_then_creates_new(self, real_commits: tuple[str, str]):
-        new_sha, old_sha = real_commits
+    def test_supersedes_older_open_task_then_creates_new(
+        self, hermetic_repo: tuple[Path, str, str]
+    ):
+        repo, new_sha, old_sha = hermetic_repo
         new_sha7 = new_sha[:7]
         older_fake_sha = "1111111111111111111111111111111111aaaa"
+        older_description = f"Commit: {older_fake_sha} (1111111)\n"
         routes = {
             ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (
                 200,
@@ -238,10 +377,14 @@ class TestSupersede:
                             "id": "existing-older-sha",
                             "status": "open",
                             "title": "chore(deps): bump scaffoldkit to 1111111",
-                            "description": f"Commit: {older_fake_sha} (1111111)\n",
+                            "description": older_description,
                         }
                     ]
                 },
+            ),
+            ("GET", "/api/tasks/existing-older-sha"): (
+                200,
+                {"task": {"id": "existing-older-sha", "description": older_description}},
             ),
             ("POST", "/api/tasks/existing-older-sha/respec"): (
                 200,
@@ -262,23 +405,144 @@ class TestSupersede:
                     "NEW_SHA": new_sha,
                     "OLD_SHA": old_sha,
                 },
-                cwd=REPO_ROOT,
+                cwd=repo,
             )
             assert result.returncode == 0, result.stderr
             assert [(r.method, r.path.split("?")[0]) for r in server.requests] == [
                 ("GET", f"/api/projects/{PROJECT_ID}/tasks"),
+                ("GET", "/api/tasks/existing-older-sha"),
                 ("POST", "/api/tasks/existing-older-sha/respec"),
                 ("POST", f"/api/projects/{PROJECT_ID}/tasks"),
             ]
-            _, respec_req, create_req = server.requests
+            _, _fetch_req, respec_req, create_req = server.requests
             assert f"Superseded by {new_sha7}" in respec_req.json_body["description"]
             assert older_fake_sha in respec_req.json_body["description"]
             assert create_req.json_body["externalRef"] == f"scaffoldkit-bump/{new_sha}"
 
+    def test_supersedes_all_older_open_tasks(self, hermetic_repo: tuple[Path, str, str]):
+        """Multiple open bump tasks (all older than NEW_SHA) must each be
+        re-fetched and respec'd, not just the first one."""
+        repo, new_sha, old_sha = hermetic_repo
+        older_shas = [
+            "1111111111111111111111111111111111aaaa",
+            "2222222222222222222222222222222222bbbb",
+            "3333333333333333333333333333333333cccc",
+        ]
+        task_ids = ["older-1", "older-2", "older-3"]
+        routes = {
+            ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (
+                200,
+                {
+                    "tasks": [
+                        {
+                            "id": task_id,
+                            "status": "open",
+                            "title": f"chore(deps): bump scaffoldkit to {sha[:7]}",
+                            "description": f"Commit: {sha} ({sha[:7]})\n",
+                        }
+                        for task_id, sha in zip(task_ids, older_shas, strict=True)
+                    ]
+                },
+            ),
+            ("POST", f"/api/projects/{PROJECT_ID}/tasks"): (
+                201,
+                {"task": {"id": "created-task-multi"}},
+            ),
+        }
+        for task_id, sha in zip(task_ids, older_shas, strict=True):
+            routes[("GET", f"/api/tasks/{task_id}")] = (
+                200,
+                {"task": {"id": task_id, "description": f"Commit: {sha} ({sha[:7]})\n"}},
+            )
+            routes[("POST", f"/api/tasks/{task_id}/respec")] = (
+                200,
+                {"task": {"id": task_id}},
+            )
+
+        with MockPlanforgeServer(routes=routes) as server:
+            result = _run_script(
+                {
+                    "PLANFORGE_BOT_TOKEN": TOKEN,
+                    "PLANFORGE_BASE_URL": server.base_url,
+                    "PLANFORGE_PROJECT_ID": PROJECT_ID,
+                    "GITHUB_REPOSITORY": "LanNguyenSi/scaffoldkit",
+                    "NEW_SHA": new_sha,
+                    "OLD_SHA": old_sha,
+                },
+                cwd=repo,
+            )
+            assert result.returncode == 0, result.stderr
+            fetch_calls = [
+                r.path for r in server.requests if r.method == "GET" and "/api/tasks/" in r.path
+            ]
+            respec_calls = [
+                r.path for r in server.requests if r.method == "POST" and r.path.endswith("/respec")
+            ]
+            assert sorted(fetch_calls) == sorted(f"/api/tasks/{tid}" for tid in task_ids)
+            assert sorted(respec_calls) == sorted(f"/api/tasks/{tid}/respec" for tid in task_ids)
+            # The new task is still created after all supersede attempts.
+            assert server.requests[-1].method == "POST"
+            assert server.requests[-1].path == f"/api/projects/{PROJECT_ID}/tasks"
+
+    def test_respec_failure_degrades_to_warning_and_still_creates(
+        self, hermetic_repo: tuple[Path, str, str]
+    ):
+        repo, new_sha, old_sha = hermetic_repo
+        older_fake_sha = "1111111111111111111111111111111111aaaa"
+        older_description = f"Commit: {older_fake_sha} (1111111)\n"
+        routes = {
+            ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (
+                200,
+                {
+                    "tasks": [
+                        {
+                            "id": "existing-older-sha",
+                            "status": "open",
+                            "title": "chore(deps): bump scaffoldkit to 1111111",
+                            "description": older_description,
+                        }
+                    ]
+                },
+            ),
+            ("GET", "/api/tasks/existing-older-sha"): (
+                200,
+                {"task": {"id": "existing-older-sha", "description": older_description}},
+            ),
+            ("POST", "/api/tasks/existing-older-sha/respec"): (
+                403,
+                {"error": "forbidden", "message": "not the task creator"},
+            ),
+            ("POST", f"/api/projects/{PROJECT_ID}/tasks"): (
+                201,
+                {"task": {"id": "created-task-despite-403"}},
+            ),
+        }
+        with MockPlanforgeServer(routes=routes) as server:
+            result = _run_script(
+                {
+                    "PLANFORGE_BOT_TOKEN": TOKEN,
+                    "PLANFORGE_BASE_URL": server.base_url,
+                    "PLANFORGE_PROJECT_ID": PROJECT_ID,
+                    "GITHUB_REPOSITORY": "LanNguyenSi/scaffoldkit",
+                    "NEW_SHA": new_sha,
+                    "OLD_SHA": old_sha,
+                },
+                cwd=repo,
+            )
+            assert result.returncode == 0, result.stderr
+            assert [(r.method, r.path.split("?")[0]) for r in server.requests] == [
+                ("GET", f"/api/projects/{PROJECT_ID}/tasks"),
+                ("GET", "/api/tasks/existing-older-sha"),
+                ("POST", "/api/tasks/existing-older-sha/respec"),
+                ("POST", f"/api/projects/{PROJECT_ID}/tasks"),
+            ]
+        assert "Could not mark task existing-older-sha as superseded" in result.stderr
+        assert "403" in result.stderr
+
 
 class TestHttpErrorHandling:
-    def test_fails_loudly_on_unexpected_error(self, real_commits: tuple[str, str]):
-        new_sha, old_sha = real_commits
+    def test_fails_loudly_on_unexpected_error(self, hermetic_repo: tuple[Path, str, str]):
+        repo, new_sha, old_sha = hermetic_repo
         routes = {
             ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (200, {"tasks": []}),
             ("POST", f"/api/projects/{PROJECT_ID}/tasks"): (
@@ -296,15 +560,15 @@ class TestHttpErrorHandling:
                     "NEW_SHA": new_sha,
                     "OLD_SHA": old_sha,
                 },
-                cwd=REPO_ROOT,
+                cwd=repo,
             )
             assert result.returncode != 0
         assert "500" in result.stderr
         assert TOKEN not in result.stdout
         assert TOKEN not in result.stderr
 
-    def test_tolerates_dedupe_conflict_as_idempotent(self, real_commits: tuple[str, str]):
-        new_sha, old_sha = real_commits
+    def test_tolerates_dedupe_conflict_as_idempotent(self, hermetic_repo: tuple[Path, str, str]):
+        repo, new_sha, old_sha = hermetic_repo
         routes = {
             ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (200, {"tasks": []}),
             ("POST", f"/api/projects/{PROJECT_ID}/tasks"): (
@@ -322,32 +586,130 @@ class TestHttpErrorHandling:
                     "NEW_SHA": new_sha,
                     "OLD_SHA": old_sha,
                 },
-                cwd=REPO_ROOT,
+                cwd=repo,
             )
             assert result.returncode == 0, result.stderr
         assert "already has a task" in result.stderr
 
+    def test_200_create_with_task_id_is_treated_as_success(
+        self, hermetic_repo: tuple[Path, str, str]
+    ):
+        """A plausible dedupe-by-returning-the-existing-task shape: HTTP
+        200 with a real task id must succeed, not fall through to the
+        loud-failure branch (the openapi spec only documents 201/403)."""
+        repo, new_sha, old_sha = hermetic_repo
+        routes = {
+            ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (200, {"tasks": []}),
+            ("POST", f"/api/projects/{PROJECT_ID}/tasks"): (
+                200,
+                {"task": {"id": "existing-deduped-task"}},
+            ),
+        }
+        with MockPlanforgeServer(routes=routes) as server:
+            result = _run_script(
+                {
+                    "PLANFORGE_BOT_TOKEN": TOKEN,
+                    "PLANFORGE_BASE_URL": server.base_url,
+                    "PLANFORGE_PROJECT_ID": PROJECT_ID,
+                    "GITHUB_REPOSITORY": "LanNguyenSi/scaffoldkit",
+                    "NEW_SHA": new_sha,
+                    "OLD_SHA": old_sha,
+                },
+                cwd=repo,
+            )
+            assert result.returncode == 0, result.stderr
+        assert "existing-deduped-task" in result.stderr
+        assert "treating as success" in result.stderr
+
+    def test_400_with_externalref_in_body_still_fails(self, hermetic_repo: tuple[Path, str, str]):
+        """A 400 whose body happens to mention 'externalRef' must NOT be
+        tolerated - only 409 alone, or 409/422 with a matching body, may
+        be treated as idempotent."""
+        repo, new_sha, old_sha = hermetic_repo
+        routes = {
+            ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (200, {"tasks": []}),
+            ("POST", f"/api/projects/{PROJECT_ID}/tasks"): (
+                400,
+                {"error": "bad_request", "message": "externalRef must be a non-empty string"},
+            ),
+        }
+        with MockPlanforgeServer(routes=routes) as server:
+            result = _run_script(
+                {
+                    "PLANFORGE_BOT_TOKEN": TOKEN,
+                    "PLANFORGE_BASE_URL": server.base_url,
+                    "PLANFORGE_PROJECT_ID": PROJECT_ID,
+                    "GITHUB_REPOSITORY": "LanNguyenSi/scaffoldkit",
+                    "NEW_SHA": new_sha,
+                    "OLD_SHA": old_sha,
+                },
+                cwd=repo,
+            )
+            assert result.returncode != 0
+        assert "400" in result.stderr
+        assert "Failed to create agent-planforge bump task" in result.stderr
+
+    def test_500_with_duplicate_in_body_still_fails(self, hermetic_repo: tuple[Path, str, str]):
+        """A 500 whose body happens to contain the word 'duplicate' must
+        NOT be tolerated as idempotent."""
+        repo, new_sha, old_sha = hermetic_repo
+        routes = {
+            ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (200, {"tasks": []}),
+            ("POST", f"/api/projects/{PROJECT_ID}/tasks"): (
+                500,
+                {"error": "internal", "message": "duplicate key value violates constraint"},
+            ),
+        }
+        with MockPlanforgeServer(routes=routes) as server:
+            result = _run_script(
+                {
+                    "PLANFORGE_BOT_TOKEN": TOKEN,
+                    "PLANFORGE_BASE_URL": server.base_url,
+                    "PLANFORGE_PROJECT_ID": PROJECT_ID,
+                    "GITHUB_REPOSITORY": "LanNguyenSi/scaffoldkit",
+                    "NEW_SHA": new_sha,
+                    "OLD_SHA": old_sha,
+                },
+                cwd=repo,
+            )
+            assert result.returncode != 0
+        assert "500" in result.stderr
+        assert "Failed to create agent-planforge bump task" in result.stderr
+
+    def test_fails_loudly_when_list_call_is_non_200(self, hermetic_repo: tuple[Path, str, str]):
+        repo, new_sha, old_sha = hermetic_repo
+        routes = {
+            ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (
+                503,
+                {"error": "unavailable"},
+            ),
+        }
+        with MockPlanforgeServer(routes=routes) as server:
+            result = _run_script(
+                {
+                    "PLANFORGE_BOT_TOKEN": TOKEN,
+                    "PLANFORGE_BASE_URL": server.base_url,
+                    "PLANFORGE_PROJECT_ID": PROJECT_ID,
+                    "GITHUB_REPOSITORY": "LanNguyenSi/scaffoldkit",
+                    "NEW_SHA": new_sha,
+                    "OLD_SHA": old_sha,
+                },
+                cwd=repo,
+            )
+            assert result.returncode != 0
+            # No create call was attempted.
+            assert [(r.method, r.path.split("?")[0]) for r in server.requests] == [
+                ("GET", f"/api/projects/{PROJECT_ID}/tasks"),
+            ]
+        assert "Failed to list existing agent-planforge tasks" in result.stderr
+        assert "503" in result.stderr
+
 
 class TestRevertTitlePrefix:
     def test_revert_commit_gets_revert_prefixed_title(self, tmp_path: Path):
-        # Isolated throwaway git repo so we control the commit subject
-        # precisely, without touching this checkout's real history.
-        repo = tmp_path / "repo"
-        repo.mkdir()
-        _git("init", "-q", cwd=repo)
-        _git("config", "user.email", "ci@example.com", cwd=repo)
-        _git("config", "user.name", "CI", cwd=repo)
-        _git("commit", "--allow-empty", "-q", "-m", "Initial commit", cwd=repo)
-        old_sha = _git("rev-parse", "HEAD", cwd=repo)
-        _git(
-            "commit",
-            "--allow-empty",
-            "-q",
-            "-m",
-            'Revert "chore: something that broke"',
-            cwd=repo,
+        repo, new_sha, old_sha = _make_hermetic_repo(
+            tmp_path, second_commit_message='Revert "chore: something that broke"'
         )
-        new_sha = _git("rev-parse", "HEAD", cwd=repo)
         new_sha7 = new_sha[:7]
 
         routes = {

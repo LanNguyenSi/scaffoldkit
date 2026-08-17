@@ -32,13 +32,16 @@
 # lookup-by-externalRef endpoint (GET /api/projects/{id}/tasks has no such
 # filter, and Task objects don't echo externalRef back), so before creating
 # we list recent tasks and scan titles/descriptions client-side:
-#   - an open task whose title matches the bump-task pattern and whose
-#     description already contains the full new SHA -> already filed,
-#     skip creation entirely.
-#   - an open task matching the pattern for an OLDER sha -> best-effort
-#     respec its description with a "Superseded by <newer sha7>" note
-#     (requires this bot to be the task's creator; failures here are
-#     logged and non-fatal), then create the new task anyway.
+#   - if ANY open task matching the bump-task title pattern already has a
+#     description containing the full new SHA -> already filed, skip
+#     creation entirely (no further API calls this run).
+#   - otherwise every OTHER open task matching the pattern (i.e. for an
+#     OLDER sha) gets best-effort superseded, one at a time: we re-fetch
+#     it via GET /api/tasks/{id} (the list response's description can be
+#     truncated/stale) and respec its fresh description with a
+#     "Superseded by <newer sha7>" note (requires this bot to be the
+#     task's creator; failures here are logged and non-fatal). The new
+#     task is created regardless of how the supersede attempts went.
 set -euo pipefail
 
 log() { printf '%s\n' "$*" >&2; }
@@ -66,7 +69,10 @@ COMMIT_SUBJECT="$(git log -1 --pretty=%s "$NEW_SHA")"
 
 TITLE="chore(deps): bump scaffoldkit to ${NEW_SHA7}"
 case "$COMMIT_SUBJECT" in
-  Revert*)
+  [Rr]evert*)
+    TITLE="revert: ${TITLE}"
+    ;;
+  "Merge pull request"*[Rr]evert*)
     TITLE="revert: ${TITLE}"
     ;;
 esac
@@ -97,24 +103,36 @@ EXTERNAL_REF="scaffoldkit-bump/${NEW_SHA}"
 
 # ---------------------------------------------------------------------------
 # HTTP helper. Sets API_STATUS and writes the response body to API_BODY_FILE.
-# Never logs the Authorization header or the token.
+# Never logs the Authorization header or the token. The token is kept off
+# argv entirely (it would otherwise be visible to anyone who can read this
+# host's process list) by routing it through a 0600 curl config file instead
+# of a -H flag.
 # ---------------------------------------------------------------------------
 API_BODY_FILE="$(mktemp)"
-trap 'rm -f "$API_BODY_FILE"' EXIT
+AUTH_CONFIG_FILE="$(mktemp)"
+chmod 600 "$AUTH_CONFIG_FILE"
+trap 'rm -f "$API_BODY_FILE" "$AUTH_CONFIG_FILE"' EXIT
+
+# curl config-file quoting: backslash-escape backslashes, then quotes.
+ESCAPED_TOKEN="${PLANFORGE_BOT_TOKEN//\\/\\\\}"
+ESCAPED_TOKEN="${ESCAPED_TOKEN//\"/\\\"}"
+printf 'header = "Authorization: Bearer %s"\n' "$ESCAPED_TOKEN" >"$AUTH_CONFIG_FILE"
 
 api_call() {
   local method="$1" path="$2" body="${3:-}" status
   if [ -n "$body" ]; then
     status="$(curl -sS -o "$API_BODY_FILE" -w '%{http_code}' \
+      --max-time 30 --connect-timeout 10 \
+      -K "$AUTH_CONFIG_FILE" \
       -X "$method" \
-      -H "Authorization: Bearer ${PLANFORGE_BOT_TOKEN}" \
       -H "Content-Type: application/json" \
       --data "$body" \
       "${PLANFORGE_BASE_URL}${path}")"
   else
     status="$(curl -sS -o "$API_BODY_FILE" -w '%{http_code}' \
+      --max-time 30 --connect-timeout 10 \
+      -K "$AUTH_CONFIG_FILE" \
       -X "$method" \
-      -H "Authorization: Bearer ${PLANFORGE_BOT_TOKEN}" \
       "${PLANFORGE_BASE_URL}${path}")"
   fi
   API_STATUS="$status"
@@ -131,25 +149,50 @@ if [ "$API_STATUS" != "200" ]; then
 fi
 
 EXISTING_JSON="$(jq -c '[.tasks[] | select(.status == "open") | select(.title | test("chore\\(deps\\): bump scaffoldkit to "))]' "$API_BODY_FILE")"
-EXISTING_ID="$(jq -r '.[0].id // empty' <<<"$EXISTING_JSON")"
-EXISTING_DESCRIPTION="$(jq -r '.[0].description // empty' <<<"$EXISTING_JSON")"
 
-if [ -n "$EXISTING_ID" ]; then
-  if [[ "$EXISTING_DESCRIPTION" == *"$NEW_SHA"* ]]; then
-    notice "An open bump task for ${NEW_SHA7} already exists (task ${EXISTING_ID}); skipping duplicate creation."
-    exit 0
-  fi
+# Scan the WHOLE filtered array for an already-filed task for this exact
+# NEW_SHA before deciding to skip - it might not be the first element (the
+# list can carry several open bump tasks, e.g. after a manual duplicate).
+SAME_SHA_ID="$(jq -r --arg sha "$NEW_SHA" \
+  '[.[] | select((.description // "") | contains($sha))][0].id // empty' \
+  <<<"$EXISTING_JSON")"
 
-  SUPERSEDE_NOTE="$(printf '\n\n---\nSuperseded by %s (a newer scaffoldkit commit landed on master; see the newer bump task for current status).\n' "$NEW_SHA7")"
-  SUPERSEDE_DESCRIPTION="${EXISTING_DESCRIPTION}${SUPERSEDE_NOTE}"
-  RESPEC_BODY="$(jq -n --arg description "$SUPERSEDE_DESCRIPTION" '{description: $description}')"
+if [ -n "$SAME_SHA_ID" ]; then
+  notice "An open bump task for ${NEW_SHA7} already exists (task ${SAME_SHA_ID}); skipping duplicate creation."
+  exit 0
+fi
 
-  api_call POST "/api/tasks/${EXISTING_ID}/respec" "$RESPEC_BODY"
-  if [ "$API_STATUS" = "200" ]; then
-    notice "Marked older open bump task ${EXISTING_ID} as superseded by ${NEW_SHA7}."
-  else
-    warn "Could not mark task ${EXISTING_ID} as superseded (HTTP ${API_STATUS}); continuing to create the new task anyway. This is expected if this bot is not that task's creator and allowNonCreatorRespec is off."
-  fi
+# No same-sha match: every remaining open bump task in the array is for an
+# older sha. Best-effort supersede all of them, not just the first.
+OLDER_IDS="$(jq -r '.[].id' <<<"$EXISTING_JSON")"
+if [ -n "$OLDER_IDS" ]; then
+  while IFS= read -r OLDER_ID; do
+    [ -n "$OLDER_ID" ] || continue
+
+    # Re-fetch right before respec so the base description is authoritative
+    # (the list response's description may be stale or truncated).
+    api_call GET "/api/tasks/${OLDER_ID}"
+    if [ "$API_STATUS" != "200" ]; then
+      warn "Could not fetch task ${OLDER_ID} to supersede it (HTTP ${API_STATUS}); skipping."
+      continue
+    fi
+    FETCHED_DESCRIPTION="$(jq -r '.task.description // .description // empty' "$API_BODY_FILE")"
+    if [ -z "$FETCHED_DESCRIPTION" ]; then
+      warn "Task ${OLDER_ID}'s fetched description is empty; skipping supersede to avoid clobbering it."
+      continue
+    fi
+
+    SUPERSEDE_NOTE="$(printf '\n\n---\nSuperseded by %s (a newer scaffoldkit commit landed on master; see the newer bump task for current status).\n' "$NEW_SHA7")"
+    SUPERSEDE_DESCRIPTION="${FETCHED_DESCRIPTION}${SUPERSEDE_NOTE}"
+    RESPEC_BODY="$(jq -n --arg description "$SUPERSEDE_DESCRIPTION" '{description: $description}')"
+
+    api_call POST "/api/tasks/${OLDER_ID}/respec" "$RESPEC_BODY"
+    if [ "$API_STATUS" = "200" ]; then
+      notice "Marked older open bump task ${OLDER_ID} as superseded by ${NEW_SHA7}."
+    else
+      warn "Could not mark task ${OLDER_ID} as superseded (HTTP ${API_STATUS}); continuing to create the new task anyway. This is expected if this bot is not that task's creator and allowNonCreatorRespec is off."
+    fi
+  done <<<"$OLDER_IDS"
 fi
 
 # ---------------------------------------------------------------------------
@@ -169,7 +212,21 @@ if [ "$API_STATUS" = "201" ]; then
   exit 0
 fi
 
-if [ "$API_STATUS" = "409" ] || grep -qi -e 'externalref' -e 'duplicate' "$API_BODY_FILE"; then
+# --- Everything below is UNVERIFIED against the live backend. The openapi
+# spec for this create endpoint documents only 201 (created) and 403
+# (forbidden) - no dedupe-on-create response shape is spec'd. The 200-with-
+# task-id arm and the 409/422-with-matching-body arm are our best guess at
+# what a dedupe response looks like; tighten (or drop) them once we've
+# observed a real duplicate response from the live backend.
+if [ "$API_STATUS" = "200" ]; then
+  CREATED_ID="$(jq -r '.task.id // empty' "$API_BODY_FILE")"
+  if [ -n "$CREATED_ID" ]; then
+    notice "agent-planforge returned HTTP 200 with an existing/created task ${CREATED_ID} for ${NEW_SHA7}; treating as success."
+    exit 0
+  fi
+fi
+
+if [ "$API_STATUS" = "409" ] || { [ "$API_STATUS" = "422" ] && grep -qi -e 'externalref' -e 'duplicate' "$API_BODY_FILE"; }; then
   notice "agent-planforge already has a task for externalRef ${EXTERNAL_REF} (HTTP ${API_STATUS}); treating as already notified."
   exit 0
 fi
