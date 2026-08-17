@@ -111,6 +111,8 @@ Directories (6):
 
 Both depend on this repo in production. Changes to blueprint contracts here ripple into those consumers.
 
+Because agent-planforge's `server/Dockerfile` pins ScaffoldKit to a fixed commit SHA (`SCAFFOLDKIT_REF`), every merge to `master` here auto-opens a `chore(deps): bump scaffoldkit to <sha7>` task in agent-planforge's agent-tasks project (see `.github/workflows/notify-planforge.yml` and `scripts/notify-planforge.sh`). This keeps the drift between ScaffoldKit's default branch and the pinned SHA visible instead of silent; the task carries the compare URL, the changed files, and a re-pickup checklist for whoever bumps the pin.
+
 ## Development
 
 ```bash
