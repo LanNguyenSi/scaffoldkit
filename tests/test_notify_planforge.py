@@ -19,6 +19,7 @@ from __future__ import annotations
 import http.server
 import json
 import os
+import shutil
 import subprocess
 import threading
 from dataclasses import dataclass
@@ -43,9 +44,13 @@ class RecordedRequest:
 
 class MockPlanforgeServer:
     """A tiny local HTTP server that records requests and replays canned
-    JSON responses keyed by (method, path-without-querystring)."""
+    responses keyed by (method, path-without-querystring).
 
-    def __init__(self, routes: dict[tuple[str, str], tuple[int, dict]]):
+    A route's payload is normally a dict/list, JSON-encoded on the way out.
+    Pass ``bytes`` instead to send a raw, non-JSON body (e.g. an HTML error
+    page) so tests can exercise the script's jq-parse-failure handling."""
+
+    def __init__(self, routes: dict[tuple[str, str], tuple[int, dict | bytes]]):
         self.routes = routes
         self.requests: list[RecordedRequest] = []
         recorder = self
@@ -65,9 +70,14 @@ class MockPlanforgeServer:
                     )
                 )
                 status, payload = recorder.routes.get((self.command, path_no_query), (200, {}))
-                data = json.dumps(payload).encode("utf-8")
+                if isinstance(payload, (bytes, bytearray)):
+                    data = bytes(payload)
+                    content_type = "text/html"
+                else:
+                    data = json.dumps(payload).encode("utf-8")
+                    content_type = "application/json"
                 self.send_response(status)
-                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Type", content_type)
                 self.send_header("Content-Length", str(len(data)))
                 self.end_headers()
                 self.wfile.write(data)
@@ -539,6 +549,147 @@ class TestSupersede:
         assert "Could not mark task existing-older-sha as superseded" in result.stderr
         assert "403" in result.stderr
 
+    def test_empty_fetched_description_skips_respec_and_still_creates(
+        self, hermetic_repo: tuple[Path, str, str]
+    ):
+        """If the re-fetch of an older task comes back 200 with an empty
+        description, the script must not POST /respec for it at all (to
+        avoid clobbering the task with just the supersede note) - it
+        should warn and move on, and the new task must still be created."""
+        repo, new_sha, old_sha = hermetic_repo
+        routes = {
+            ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (
+                200,
+                {
+                    "tasks": [
+                        {
+                            "id": "existing-older-sha",
+                            "status": "open",
+                            "title": "chore(deps): bump scaffoldkit to 1111111",
+                            "description": (
+                                "Commit: 1111111111111111111111111111111111aaaa (1111111)\n"
+                            ),
+                        }
+                    ]
+                },
+            ),
+            ("GET", "/api/tasks/existing-older-sha"): (
+                200,
+                {"task": {"id": "existing-older-sha", "description": ""}},
+            ),
+            ("POST", f"/api/projects/{PROJECT_ID}/tasks"): (
+                201,
+                {"task": {"id": "created-task-despite-empty-description"}},
+            ),
+        }
+        with MockPlanforgeServer(routes=routes) as server:
+            result = _run_script(
+                {
+                    "PLANFORGE_BOT_TOKEN": TOKEN,
+                    "PLANFORGE_BASE_URL": server.base_url,
+                    "PLANFORGE_PROJECT_ID": PROJECT_ID,
+                    "GITHUB_REPOSITORY": "LanNguyenSi/scaffoldkit",
+                    "NEW_SHA": new_sha,
+                    "OLD_SHA": old_sha,
+                },
+                cwd=repo,
+            )
+            assert result.returncode == 0, result.stderr
+            # No /respec call for this task - only the list, the re-fetch,
+            # and the create.
+            assert [(r.method, r.path.split("?")[0]) for r in server.requests] == [
+                ("GET", f"/api/projects/{PROJECT_ID}/tasks"),
+                ("GET", "/api/tasks/existing-older-sha"),
+                ("POST", f"/api/projects/{PROJECT_ID}/tasks"),
+            ]
+        assert "fetched description is empty" in result.stderr
+        assert "skipping supersede" in result.stderr
+
+
+class TestTransportFailure:
+    """A curl *transport* failure (DNS, connection refused, --max-time
+    firing, etc. - no HTTP response at all) must not abort the whole
+    script under `set -euo pipefail`. Every api_call site already has a
+    non-200/201 handling path; api_call must reach it instead of letting
+    the failing `status="$(curl ...)"` assignment kill the script."""
+
+    def test_respec_transport_failure_still_creates(
+        self, hermetic_repo: tuple[Path, str, str], tmp_path: Path
+    ):
+        repo, new_sha, old_sha = hermetic_repo
+        older_fake_sha = "1111111111111111111111111111111111aaaa"
+        older_description = f"Commit: {older_fake_sha} (1111111)\n"
+        routes = {
+            ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (
+                200,
+                {
+                    "tasks": [
+                        {
+                            "id": "existing-older-sha",
+                            "status": "open",
+                            "title": "chore(deps): bump scaffoldkit to 1111111",
+                            "description": older_description,
+                        }
+                    ]
+                },
+            ),
+            ("GET", "/api/tasks/existing-older-sha"): (
+                200,
+                {"task": {"id": "existing-older-sha", "description": older_description}},
+            ),
+            ("POST", f"/api/projects/{PROJECT_ID}/tasks"): (
+                201,
+                {"task": {"id": "created-task-despite-transport-failure"}},
+            ),
+        }
+
+        real_curl = shutil.which("curl")
+        assert real_curl is not None, "curl must be on PATH to build the shim"
+
+        # A curl shim on PATH that fails (transport-style, no HTTP response)
+        # only for the /respec request and delegates everything else to the
+        # real curl - proves the create still fires even though the
+        # supersede attempt never got an HTTP status at all.
+        shim_dir = tmp_path / "fake-bin"
+        shim_dir.mkdir()
+        curl_shim = shim_dir / "curl"
+        curl_shim.write_text(
+            "#!/usr/bin/env bash\n"
+            'for arg in "$@"; do\n'
+            '  case "$arg" in\n'
+            "    */respec)\n"
+            "      exit 7\n"
+            "      ;;\n"
+            "  esac\n"
+            "done\n"
+            f'exec "{real_curl}" "$@"\n'
+        )
+        curl_shim.chmod(0o755)
+
+        with MockPlanforgeServer(routes=routes) as server:
+            result = _run_script(
+                {
+                    "PLANFORGE_BOT_TOKEN": TOKEN,
+                    "PLANFORGE_BASE_URL": server.base_url,
+                    "PLANFORGE_PROJECT_ID": PROJECT_ID,
+                    "GITHUB_REPOSITORY": "LanNguyenSi/scaffoldkit",
+                    "NEW_SHA": new_sha,
+                    "OLD_SHA": old_sha,
+                    "PATH": f"{shim_dir}:{os.environ['PATH']}",
+                },
+                cwd=repo,
+            )
+            assert result.returncode == 0, result.stderr
+            # The respec call never reached the mock server at all (curl
+            # failed before making the request); the create still fires.
+            assert [(r.method, r.path.split("?")[0]) for r in server.requests] == [
+                ("GET", f"/api/projects/{PROJECT_ID}/tasks"),
+                ("GET", "/api/tasks/existing-older-sha"),
+                ("POST", f"/api/projects/{PROJECT_ID}/tasks"),
+            ]
+        assert "Could not mark task existing-older-sha as superseded" in result.stderr
+        assert "000" in result.stderr
+
 
 class TestHttpErrorHandling:
     def test_fails_loudly_on_unexpected_error(self, hermetic_repo: tuple[Path, str, str]):
@@ -621,6 +772,34 @@ class TestHttpErrorHandling:
         assert "existing-deduped-task" in result.stderr
         assert "treating as success" in result.stderr
 
+    def test_200_create_without_task_id_still_fails(self, hermetic_repo: tuple[Path, str, str]):
+        """A 200 create response with no `.task.id` in the body must NOT
+        be treated as success - only a real task id makes the 200 arm
+        exit 0; otherwise it must fall through to the loud-failure path."""
+        repo, new_sha, old_sha = hermetic_repo
+        routes = {
+            ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (200, {"tasks": []}),
+            ("POST", f"/api/projects/{PROJECT_ID}/tasks"): (
+                200,
+                {"confidence": {"score": 40}},
+            ),
+        }
+        with MockPlanforgeServer(routes=routes) as server:
+            result = _run_script(
+                {
+                    "PLANFORGE_BOT_TOKEN": TOKEN,
+                    "PLANFORGE_BASE_URL": server.base_url,
+                    "PLANFORGE_PROJECT_ID": PROJECT_ID,
+                    "GITHUB_REPOSITORY": "LanNguyenSi/scaffoldkit",
+                    "NEW_SHA": new_sha,
+                    "OLD_SHA": old_sha,
+                },
+                cwd=repo,
+            )
+            assert result.returncode != 0
+        assert "Failed to create agent-planforge bump task" in result.stderr
+        assert "200" in result.stderr
+
     def test_400_with_externalref_in_body_still_fails(self, hermetic_repo: tuple[Path, str, str]):
         """A 400 whose body happens to mention 'externalRef' must NOT be
         tolerated - only 409 alone, or 409/422 with a matching body, may
@@ -676,6 +855,60 @@ class TestHttpErrorHandling:
         assert "500" in result.stderr
         assert "Failed to create agent-planforge bump task" in result.stderr
 
+    def test_422_with_duplicate_in_body_tolerated_as_idempotent(
+        self, hermetic_repo: tuple[Path, str, str]
+    ):
+        repo, new_sha, old_sha = hermetic_repo
+        routes = {
+            ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (200, {"tasks": []}),
+            ("POST", f"/api/projects/{PROJECT_ID}/tasks"): (
+                422,
+                {"error": "unprocessable", "message": "externalRef is a duplicate"},
+            ),
+        }
+        with MockPlanforgeServer(routes=routes) as server:
+            result = _run_script(
+                {
+                    "PLANFORGE_BOT_TOKEN": TOKEN,
+                    "PLANFORGE_BASE_URL": server.base_url,
+                    "PLANFORGE_PROJECT_ID": PROJECT_ID,
+                    "GITHUB_REPOSITORY": "LanNguyenSi/scaffoldkit",
+                    "NEW_SHA": new_sha,
+                    "OLD_SHA": old_sha,
+                },
+                cwd=repo,
+            )
+            assert result.returncode == 0, result.stderr
+        assert "already has a task" in result.stderr
+
+    def test_422_with_non_matching_body_still_fails(self, hermetic_repo: tuple[Path, str, str]):
+        """A 422 whose body does NOT mention externalRef/duplicate (some
+        other validation error) must fall through to the loud-failure
+        path, not be swallowed as idempotent."""
+        repo, new_sha, old_sha = hermetic_repo
+        routes = {
+            ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (200, {"tasks": []}),
+            ("POST", f"/api/projects/{PROJECT_ID}/tasks"): (
+                422,
+                {"error": "unprocessable", "message": "title must not be empty"},
+            ),
+        }
+        with MockPlanforgeServer(routes=routes) as server:
+            result = _run_script(
+                {
+                    "PLANFORGE_BOT_TOKEN": TOKEN,
+                    "PLANFORGE_BASE_URL": server.base_url,
+                    "PLANFORGE_PROJECT_ID": PROJECT_ID,
+                    "GITHUB_REPOSITORY": "LanNguyenSi/scaffoldkit",
+                    "NEW_SHA": new_sha,
+                    "OLD_SHA": old_sha,
+                },
+                cwd=repo,
+            )
+            assert result.returncode != 0
+        assert "422" in result.stderr
+        assert "Failed to create agent-planforge bump task" in result.stderr
+
     def test_fails_loudly_when_list_call_is_non_200(self, hermetic_repo: tuple[Path, str, str]):
         repo, new_sha, old_sha = hermetic_repo
         routes = {
@@ -703,6 +936,36 @@ class TestHttpErrorHandling:
             ]
         assert "Failed to list existing agent-planforge tasks" in result.stderr
         assert "503" in result.stderr
+
+    def test_fails_loudly_when_list_body_is_unparseable(self, hermetic_repo: tuple[Path, str, str]):
+        """A 200 list response whose body jq cannot parse into the
+        expected shape (e.g. an HTML error page slipped past the status
+        check) must hit the same loud-failure path as a non-200 status,
+        not die with a bare jq error under `set -e`."""
+        repo, new_sha, old_sha = hermetic_repo
+        routes = {
+            ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (
+                200,
+                b"<html><body>not json</body></html>",
+            ),
+        }
+        with MockPlanforgeServer(routes=routes) as server:
+            result = _run_script(
+                {
+                    "PLANFORGE_BOT_TOKEN": TOKEN,
+                    "PLANFORGE_BASE_URL": server.base_url,
+                    "PLANFORGE_PROJECT_ID": PROJECT_ID,
+                    "GITHUB_REPOSITORY": "LanNguyenSi/scaffoldkit",
+                    "NEW_SHA": new_sha,
+                    "OLD_SHA": old_sha,
+                },
+                cwd=repo,
+            )
+            assert result.returncode != 0
+            assert [(r.method, r.path.split("?")[0]) for r in server.requests] == [
+                ("GET", f"/api/projects/{PROJECT_ID}/tasks"),
+            ]
+        assert "Failed to list existing agent-planforge tasks" in result.stderr
 
 
 class TestRevertTitlePrefix:
@@ -734,4 +997,98 @@ class TestRevertTitlePrefix:
             assert result.returncode == 0, result.stderr
             create_req = server.requests[-1]
             expected_title = f"revert: chore(deps): bump scaffoldkit to {new_sha7}"
+            assert create_req.json_body["title"] == expected_title
+
+    def test_lowercase_conventional_revert_gets_prefixed_title(self, tmp_path: Path):
+        repo, new_sha, old_sha = _make_hermetic_repo(
+            tmp_path, second_commit_message="revert: something that broke"
+        )
+        new_sha7 = new_sha[:7]
+
+        routes = {
+            ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (200, {"tasks": []}),
+            ("POST", f"/api/projects/{PROJECT_ID}/tasks"): (
+                201,
+                {"task": {"id": "created-task-lowercase-revert"}},
+            ),
+        }
+        with MockPlanforgeServer(routes=routes) as server:
+            result = _run_script(
+                {
+                    "PLANFORGE_BOT_TOKEN": TOKEN,
+                    "PLANFORGE_BASE_URL": server.base_url,
+                    "PLANFORGE_PROJECT_ID": PROJECT_ID,
+                    "GITHUB_REPOSITORY": "acme/demo",
+                    "NEW_SHA": new_sha,
+                    "OLD_SHA": old_sha,
+                },
+                cwd=repo,
+            )
+            assert result.returncode == 0, result.stderr
+            create_req = server.requests[-1]
+            expected_title = f"revert: chore(deps): bump scaffoldkit to {new_sha7}"
+            assert create_req.json_body["title"] == expected_title
+
+    def test_merge_wrapped_revert_gets_prefixed_title(self, tmp_path: Path):
+        repo, new_sha, old_sha = _make_hermetic_repo(
+            tmp_path,
+            second_commit_message="Merge pull request #42 from acme/revert-bad-change",
+        )
+        new_sha7 = new_sha[:7]
+
+        routes = {
+            ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (200, {"tasks": []}),
+            ("POST", f"/api/projects/{PROJECT_ID}/tasks"): (
+                201,
+                {"task": {"id": "created-task-merge-revert"}},
+            ),
+        }
+        with MockPlanforgeServer(routes=routes) as server:
+            result = _run_script(
+                {
+                    "PLANFORGE_BOT_TOKEN": TOKEN,
+                    "PLANFORGE_BASE_URL": server.base_url,
+                    "PLANFORGE_PROJECT_ID": PROJECT_ID,
+                    "GITHUB_REPOSITORY": "acme/demo",
+                    "NEW_SHA": new_sha,
+                    "OLD_SHA": old_sha,
+                },
+                cwd=repo,
+            )
+            assert result.returncode == 0, result.stderr
+            create_req = server.requests[-1]
+            expected_title = f"revert: chore(deps): bump scaffoldkit to {new_sha7}"
+            assert create_req.json_body["title"] == expected_title
+
+    def test_reverting_prose_does_not_get_prefixed_title(self, tmp_path: Path):
+        """'reverting the CSS tweak' must NOT be mislabeled as a revert -
+        the loose `[Rr]evert*` pattern used to match this; the tightened
+        delimiter-requiring pattern must not."""
+        repo, new_sha, old_sha = _make_hermetic_repo(
+            tmp_path, second_commit_message="reverting the CSS tweak"
+        )
+        new_sha7 = new_sha[:7]
+
+        routes = {
+            ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (200, {"tasks": []}),
+            ("POST", f"/api/projects/{PROJECT_ID}/tasks"): (
+                201,
+                {"task": {"id": "created-task-not-a-revert"}},
+            ),
+        }
+        with MockPlanforgeServer(routes=routes) as server:
+            result = _run_script(
+                {
+                    "PLANFORGE_BOT_TOKEN": TOKEN,
+                    "PLANFORGE_BASE_URL": server.base_url,
+                    "PLANFORGE_PROJECT_ID": PROJECT_ID,
+                    "GITHUB_REPOSITORY": "acme/demo",
+                    "NEW_SHA": new_sha,
+                    "OLD_SHA": old_sha,
+                },
+                cwd=repo,
+            )
+            assert result.returncode == 0, result.stderr
+            create_req = server.requests[-1]
+            expected_title = f"chore(deps): bump scaffoldkit to {new_sha7}"
             assert create_req.json_body["title"] == expected_title

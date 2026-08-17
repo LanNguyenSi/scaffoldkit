@@ -69,7 +69,7 @@ COMMIT_SUBJECT="$(git log -1 --pretty=%s "$NEW_SHA")"
 
 TITLE="chore(deps): bump scaffoldkit to ${NEW_SHA7}"
 case "$COMMIT_SUBJECT" in
-  [Rr]evert*)
+  'Revert '*|Revert:*|revert:*|'revert('*)
     TITLE="revert: ${TITLE}"
     ;;
   "Merge pull request"*[Rr]evert*)
@@ -121,19 +121,28 @@ printf 'header = "Authorization: Bearer %s"\n' "$ESCAPED_TOKEN" >"$AUTH_CONFIG_F
 api_call() {
   local method="$1" path="$2" body="${3:-}" status
   if [ -n "$body" ]; then
-    status="$(curl -sS -o "$API_BODY_FILE" -w '%{http_code}' \
+    if ! status="$(curl -sS -o "$API_BODY_FILE" -w '%{http_code}' \
       --max-time 30 --connect-timeout 10 \
       -K "$AUTH_CONFIG_FILE" \
       -X "$method" \
       -H "Content-Type: application/json" \
       --data "$body" \
-      "${PLANFORGE_BASE_URL}${path}")"
+      "${PLANFORGE_BASE_URL}${path}")"; then
+      # curl itself failed (DNS, connection refused, --max-time firing,
+      # etc.) rather than returning an HTTP response. Fall back to a
+      # sentinel status instead of letting `set -e` kill the whole script
+      # here - every caller already has a not-200/201 handling path (warn
+      # + continue for supersede, loud failure for list/create).
+      status='000'
+    fi
   else
-    status="$(curl -sS -o "$API_BODY_FILE" -w '%{http_code}' \
+    if ! status="$(curl -sS -o "$API_BODY_FILE" -w '%{http_code}' \
       --max-time 30 --connect-timeout 10 \
       -K "$AUTH_CONFIG_FILE" \
       -X "$method" \
-      "${PLANFORGE_BASE_URL}${path}")"
+      "${PLANFORGE_BASE_URL}${path}")"; then
+      status='000'
+    fi
   fi
   API_STATUS="$status"
 }
@@ -148,7 +157,11 @@ if [ "$API_STATUS" != "200" ]; then
   exit 1
 fi
 
-EXISTING_JSON="$(jq -c '[.tasks[] | select(.status == "open") | select(.title | test("chore\\(deps\\): bump scaffoldkit to "))]' "$API_BODY_FILE")"
+if ! EXISTING_JSON="$(jq -c '[.tasks[] | select(.status == "open") | select(.title | test("chore\\(deps\\): bump scaffoldkit to "))]' "$API_BODY_FILE" 2>/dev/null)"; then
+  log "Failed to list existing agent-planforge tasks (HTTP ${API_STATUS}):"
+  cat "$API_BODY_FILE" >&2
+  exit 1
+fi
 
 # Scan the WHOLE filtered array for an already-filed task for this exact
 # NEW_SHA before deciding to skip - it might not be the first element (the
@@ -207,7 +220,7 @@ CREATE_BODY="$(jq -n \
 api_call POST "/api/projects/${PLANFORGE_PROJECT_ID}/tasks" "$CREATE_BODY"
 
 if [ "$API_STATUS" = "201" ]; then
-  CREATED_ID="$(jq -r '.task.id // empty' "$API_BODY_FILE")"
+  CREATED_ID="$(jq -r '.task.id // empty' "$API_BODY_FILE" 2>/dev/null || true)"
   notice "Opened agent-planforge bump task ${CREATED_ID} for ${NEW_SHA7}."
   exit 0
 fi
@@ -219,7 +232,7 @@ fi
 # what a dedupe response looks like; tighten (or drop) them once we've
 # observed a real duplicate response from the live backend.
 if [ "$API_STATUS" = "200" ]; then
-  CREATED_ID="$(jq -r '.task.id // empty' "$API_BODY_FILE")"
+  CREATED_ID="$(jq -r '.task.id // empty' "$API_BODY_FILE" 2>/dev/null || true)"
   if [ -n "$CREATED_ID" ]; then
     notice "agent-planforge returned HTTP 200 with an existing/created task ${CREATED_ID} for ${NEW_SHA7}; treating as success."
     exit 0
