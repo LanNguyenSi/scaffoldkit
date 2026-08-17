@@ -189,7 +189,10 @@ if [ -n "$OLDER_IDS" ]; then
       warn "Could not fetch task ${OLDER_ID} to supersede it (HTTP ${API_STATUS}); skipping."
       continue
     fi
-    FETCHED_DESCRIPTION="$(jq -r '.task.description // .description // empty' "$API_BODY_FILE")"
+    # Guarded like the CREATED_ID/list parses: an unparseable re-fetch body
+    # must degrade to the empty-description skip below, not abort the run
+    # under set -e before the create fires.
+    FETCHED_DESCRIPTION="$(jq -r '.task.description // .description // empty' "$API_BODY_FILE" 2>/dev/null || true)"
     if [ -z "$FETCHED_DESCRIPTION" ]; then
       warn "Task ${OLDER_ID}'s fetched description is empty; skipping supersede to avoid clobbering it."
       continue
