@@ -59,7 +59,7 @@ directories:
 - `boolean`: `true`/`false`. Inputs like `yes`/`no`/`1`/`0` are normalised by the loader.
 - `choice`: must come with `choices: [...]`. The default (if absent or invalid) falls back to the first choice.
 
-Variables can be marked `required: true` (no default lookup, prompt or fail) or made conditional via the `if` field, in which case they are only collected when their parent flag is truthy. Inactive variables are pruned from the rendering context.
+Variables can be marked `required: true` (no default lookup, prompt or fail) or made conditional via the `condition` field, in which case they are only collected when their parent flag is truthy. Inactive variables are pruned from the rendering context.
 
 ### Template variables in Jinja
 

@@ -31,7 +31,7 @@ ScaffoldKit is three layers stacked top to bottom: a Typer CLI / questionary TUI
 | `models.py` | Pydantic models: `Blueprint`, `BlueprintVariable`, `VariableType`, `GenerationContext`, `GenerationResult`. |
 | `blueprint_loader.py` | Discovery and parsing. Resolves the blueprints directory (env override -> local checkout -> packaged), parses `blueprint.yaml`, validates against the model. |
 | `validators.py` | Variable validation: required fields, type coercion, choice membership. |
-| `variable_conditions.py` | Prunes variables whose `if` parent is falsy after collection. |
+| `variable_conditions.py` | Prunes variables whose `condition` parent is falsy after collection. |
 | `planforge.py` | `scaffoldkit-input.json` schema (`PlanforgeExport`), variable mapping, inference rules, blueprint-candidate fallback. See [planforge-integration.md](planforge-integration.md). |
 | `scaffold_blueprint.py` | Backs `init-blueprint`: writes a starter `blueprint.yaml`, `templates/`, and `static/` skeleton. |
 
@@ -43,7 +43,7 @@ A `scaffoldkit new` invocation runs the same pipeline whether the variables come
 2. **Load blueprint.** Parse `blueprint.yaml`, validate against the `Blueprint` model.
 3. **Collect variables.** Either via the TUI prompts or by merging `--var` flags with blueprint defaults under `--non-interactive`. Required variables without defaults still fail fast.
 4. **Validate.** `validators.py` checks required-ness, type coercion, choice membership.
-5. **Prune.** `variable_conditions.prune_inactive_variables` drops variables whose `if` parent is now falsy.
+5. **Prune.** `variable_conditions.prune_inactive_variables` drops variables whose `condition` parent is now falsy.
 6. **Build template context.** `generator.build_template_context` adds the variables, blueprint metadata (`blueprint_name`, `blueprint_display_name`, `blueprint_stack`), plus a fixed set of derived `is_*` flags so templates can branch on language, framework, package manager, config format, build tool, and stack without restating the same string compares.
 7. **Render templates.** Each `templates[]` entry is rendered through Jinja2; the optional `condition` field skips entries whose variable is falsy. Both the `source` and `target` paths are themselves Jinja-rendered, so templates can live in `{{ stack }}/...` style folders.
 8. **Copy static files.** Each `static_files[]` entry is copied verbatim from `static/` to its `target`.

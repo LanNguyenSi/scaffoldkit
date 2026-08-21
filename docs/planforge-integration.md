@@ -78,7 +78,7 @@ Empty `summary`, `features`, `constraints`, or `architecture.shape` print a warn
 4. Apply every key in `suggestedVariables` that maps to a real blueprint variable. Unsupported keys are listed in a warning.
 5. For variables planforge did not set (and the blueprint default is unchanged), apply the inference rules below.
 6. Normalise everything through the blueprint's type contract: booleans accept `true`/`yes`/`1`, choices clamp to declared options or fall back to the default.
-7. Prune variables whose `if` parent is now falsy.
+7. Prune variables whose `condition` parent is now falsy.
 
 ### Inference rules
 
