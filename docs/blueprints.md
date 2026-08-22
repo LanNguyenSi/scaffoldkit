@@ -56,10 +56,10 @@ directories:
 ### Variable types
 
 - `string`: free-form text, optional `default`.
-- `boolean`: `true`/`false`. Inputs like `yes`/`no`/`1`/`0` are normalised by the loader.
-- `choice`: must come with `choices: [...]`. The default (if absent or invalid) falls back to the first choice.
+- `boolean`: `true`/`false`. Inputs like `yes`/`no`/`1`/`0` are normalised by the CLI's `--var` parser and by the planforge input path; the interactive prompt and the blueprint loader itself do no boolean coercion.
+- `choice`: must come with `choices: [...]`. When normalising planforge input, a value outside `choices` falls back to the blueprint's default choice, or to the first choice if the default is absent or invalid. A choice variable with no default and no supplied value is not filled in; it fails validation as a missing required variable. `scaffoldkit new` validates strictly instead: for active variables (inactive ones are pruned before validation), an invalid choice value is a hard error.
 
-Variables can be marked `required: true` (no default lookup, prompt or fail) or made conditional via the `condition` field, in which case they are only collected when their parent flag is truthy. Inactive variables are pruned from the rendering context.
+Variables default to `required: true`. In `--non-interactive` mode declared defaults are used for all variables; only a required variable without a default fails. Variables can also be made conditional via the `condition` field, in which case they are only collected when their parent flag is truthy. Inactive variables are pruned from the rendering context.
 
 ### Template variables in Jinja
 
@@ -107,7 +107,7 @@ The fastest path is `scaffoldkit init-blueprint`:
 scaffoldkit init-blueprint my-new-blueprint
 ```
 
-That creates `blueprints/my-new-blueprint/` with starter `blueprint.yaml`, `templates/`, and `static/` files. From there:
+That creates `my-new-blueprint/` inside the resolved blueprints directory (see [resolution order](cli.md#scaffoldkit-list)) with starter `blueprint.yaml`, `templates/`, and `static/` files. From there:
 
 1. Edit `blueprint.yaml` to declare metadata, variables, templates, static files, and directories.
 2. Add Jinja2 templates under `templates/`.
@@ -115,7 +115,7 @@ That creates `blueprints/my-new-blueprint/` with starter `blueprint.yaml`, `temp
 4. `scaffoldkit list` to confirm discovery.
 5. `scaffoldkit new my-new-blueprint --dry-run --non-interactive --yes --var project_name=demo` to smoke-test.
 
-If you prefer to start from scratch, just create the folder by hand with the same three children. The blueprint loader picks up any folder under `blueprints/` that contains a valid `blueprint.yaml`.
+If you prefer to start from scratch, just create the folder by hand with the same three children. The blueprint loader picks up any folder in the blueprints directory that contains a valid `blueprint.yaml`.
 
 ## Custom blueprint directories
 

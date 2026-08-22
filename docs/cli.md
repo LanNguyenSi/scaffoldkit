@@ -168,13 +168,13 @@ Same `--target`, `--dry-run`, `--overwrite`, `--no-install`, `--blueprints-dir` 
 
 ## `scaffoldkit init-blueprint`
 
-Scaffold a new blueprint folder under `blueprints/` with starter files.
+Scaffold a new blueprint folder in the resolved blueprints directory, with starter files.
 
 ```bash
 scaffoldkit init-blueprint my-custom-stack
 ```
 
-Creates `blueprints/my-custom-stack/` with `blueprint.yaml`, `templates/`, and `static/` skeletons. Edit, then `scaffoldkit list` to verify and `scaffoldkit new my-custom-stack` to test.
+Creates `my-custom-stack/` inside the resolved blueprints directory (see [resolution order](#scaffoldkit-list)) with `blueprint.yaml`, `templates/`, and `static/` skeletons. Edit, then `scaffoldkit list` to verify and `scaffoldkit new my-custom-stack` to test.
 
 ## `scaffoldkit list`
 
