@@ -56,10 +56,10 @@ directories:
 ### Variable types
 
 - `string`: free-form text, optional `default`.
-- `boolean`: `true`/`false`. Inputs like `yes`/`no`/`1`/`0` are normalised by the loader.
-- `choice`: must come with `choices: [...]`. The default (if absent or invalid) falls back to the first choice.
+- `boolean`: `true`/`false`. Inputs like `yes`/`no`/`1`/`0` are normalised by the CLI's `--var` parser and by the planforge input path; the interactive prompt and the blueprint loader itself do no boolean coercion.
+- `choice`: must come with `choices: [...]`. When normalizing planforge input, an absent or invalid value falls back to the blueprint's default choice, then the first choice. `scaffoldkit new` validates strictly instead: an invalid choice value is a hard error.
 
-Variables can be marked `required: true` (no default lookup, prompt or fail) or made conditional via the `condition` field, in which case they are only collected when their parent flag is truthy. Inactive variables are pruned from the rendering context.
+Variables default to `required: true`. In `--non-interactive` mode a required variable's `default` is used first; the command only fails when no default exists. Variables can also be made conditional via the `condition` field, in which case they are only collected when their parent flag is truthy. Inactive variables are pruned from the rendering context.
 
 ### Template variables in Jinja
 
@@ -107,7 +107,7 @@ The fastest path is `scaffoldkit init-blueprint`:
 scaffoldkit init-blueprint my-new-blueprint
 ```
 
-That creates `blueprints/my-new-blueprint/` with starter `blueprint.yaml`, `templates/`, and `static/` files. From there:
+That creates `my-new-blueprint/` inside the resolved blueprints directory (`src/scaffoldkit/blueprints/` in a checkout, or via `-b`/`--blueprints-dir`) with starter `blueprint.yaml`, `templates/`, and `static/` files. From there:
 
 1. Edit `blueprint.yaml` to declare metadata, variables, templates, static files, and directories.
 2. Add Jinja2 templates under `templates/`.
