@@ -174,7 +174,7 @@ Scaffold a new blueprint folder in the resolved blueprints directory, with start
 scaffoldkit init-blueprint my-custom-stack
 ```
 
-Creates `my-custom-stack/` inside the resolved blueprints directory (`src/scaffoldkit/blueprints/` in a checkout, or via `-b`/`--blueprints-dir`) with `blueprint.yaml`, `templates/`, and `static/` skeletons. Edit, then `scaffoldkit list` to verify and `scaffoldkit new my-custom-stack` to test.
+Creates `my-custom-stack/` inside the resolved blueprints directory (see [resolution order](#scaffoldkit-list)) with `blueprint.yaml`, `templates/`, and `static/` skeletons. Edit, then `scaffoldkit list` to verify and `scaffoldkit new my-custom-stack` to test.
 
 ## `scaffoldkit list`
 
