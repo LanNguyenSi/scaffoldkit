@@ -246,7 +246,7 @@ class TestNextjsFrontend:
         workflow = (output / ".github" / "workflows" / "ci.yml").read_text()
 
         assert "docker-compose.prod.yml" in readme
-        assert "uses: actions/setup-node@v4" in workflow
+        assert "uses: actions/setup-node@v5" in workflow
         assert "Add the Next.js bootstrap to enable CI verification." in workflow
         assert "docker build -t test-web:ci ." in workflow
 
