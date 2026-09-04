@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Blueprint-generated GitHub Actions workflows now use the Node 24-based
+  `actions/checkout@v5` and `actions/setup-node@v5` majors.
+
 ## [0.4.1] - 2026-06-09
 
 Patch release fixing the generated blueprints: the Next.js templates shipped a version exposed to CVE-2025-66478, and the nextjs-frontend blueprint had test-runner and language-choice rough edges.

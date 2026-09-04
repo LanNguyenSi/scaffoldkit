@@ -156,3 +156,24 @@ class TestBlueprintContractAudit:
                     rel = pkg.relative_to(BLUEPRINTS_DIR)
                     offenders.append(f"{rel}:{lineno}")
         assert offenders == [], f"next pinned to CVE-2025-66478 version: {offenders}"
+
+    def test_workflow_templates_use_node_24_action_majors(self):
+        """Generated workflows should stay aligned with the fleet action majors."""
+        workflow_templates = [
+            path
+            for path in BLUEPRINTS_DIR.glob("**/*.yml.j2")
+            if "workflows" in path.parts or "ci" in path.parts
+        ]
+        checkout_pins: set[str] = set()
+        setup_node_pins: set[str] = set()
+
+        for template in workflow_templates:
+            for line in template.read_text().splitlines():
+                action = line.strip().removeprefix("uses: ")
+                if action.startswith("actions/checkout@"):
+                    checkout_pins.add(action)
+                elif action.startswith("actions/setup-node@"):
+                    setup_node_pins.add(action)
+
+        assert checkout_pins == {"actions/checkout@v5"}
+        assert setup_node_pins == {"actions/setup-node@v5"}
