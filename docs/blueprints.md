@@ -101,6 +101,8 @@ Every blueprint includes an `AI_CONTEXT.md`, an `architecture.md`, an ADR seed, 
 
 ## Adding a new blueprint
 
+project-forge and agent-planforge consume these blueprints in production, so changes to blueprint contracts ripple into those consumers.
+
 The fastest path is `scaffoldkit init-blueprint`:
 
 ```bash

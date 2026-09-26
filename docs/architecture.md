@@ -39,11 +39,47 @@ ScaffoldKit is three layers stacked top to bottom: a Typer CLI / questionary TUI
 
 A `scaffoldkit new` invocation runs the same pipeline whether the variables come from the TUI, `--var` flags, or a planforge export.
 
+```mermaid
+flowchart TD
+    subgraph Inputs["Inputs"]
+        A["--var flags / questionary TUI<br/>tui.py"]
+        B["scaffoldkit-input.json<br/>planforge.py"]
+        C["cli.py"]
+    end
+
+    subgraph Loader["blueprint_loader.py"]
+        D{"get_blueprints_dir()"}
+        E[("blueprint.yaml")]
+        F["Blueprint<br/>models.py"]
+    end
+
+    subgraph Engine["generator.py"]
+        G["prune_inactive_variables()<br/>variable_conditions.py"]
+        H["validate_variables()<br/>validators.py"]
+        I["render_template()<br/>renderer.py"]
+        J["write_file / copy_file<br/>filesystem.py"]
+    end
+
+    K[("--target/<br/>project tree")]
+
+    A --> C
+    B --> C
+    C --> D
+    D -->|"env / checkout / packaged"| E
+    E --> F
+    F --> G
+    C -->|variables| G
+    G --> H
+    H --> I
+    I --> J
+    J --> K
+```
+
 1. **Resolve blueprints dir.** `SCAFFOLDKIT_BLUEPRINTS_DIR` env wins. Otherwise the loader walks up from `cwd` looking for a `pyproject.toml` plus `src/scaffoldkit/blueprints/` (so editing inside a checkout just works). Falls back to the packaged blueprints shipped with the wheel.
 2. **Load blueprint.** Parse `blueprint.yaml`, validate against the `Blueprint` model.
 3. **Collect variables.** Either via the TUI prompts or by merging `--var` flags with blueprint defaults under `--non-interactive`. Required variables without defaults still fail fast.
-4. **Validate.** `validators.py` checks required-ness, type coercion, choice membership.
-5. **Prune.** `variable_conditions.prune_inactive_variables` drops variables whose `condition` parent is now falsy.
+4. **Prune.** `variable_conditions.prune_inactive_variables` drops variables whose `condition` parent is now falsy.
+5. **Validate.** `validators.py` checks required-ness, type coercion, choice membership.
 6. **Build template context.** `generator.build_template_context` adds the variables, blueprint metadata (`blueprint_name`, `blueprint_display_name`, `blueprint_stack`), plus a fixed set of derived `is_*` flags so templates can branch on language, framework, package manager, config format, build tool, and stack without restating the same string compares.
 7. **Render templates.** Each `templates[]` entry is rendered through Jinja2; the optional `condition` field skips entries whose variable is falsy. Both the `source` and `target` paths are themselves Jinja-rendered, so templates can live in `{{ stack }}/...` style folders.
 8. **Copy static files.** Each `static_files[]` entry is copied verbatim from `static/` to its `target`.
