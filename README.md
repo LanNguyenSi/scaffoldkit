@@ -14,13 +14,13 @@ ScaffoldKit generates complete project skeletons (source layout, docs, ways-of-w
 - 12 shipped blueprints spanning CLI tools, backend APIs (FastAPI, Express, Django REST, Spring Boot, Symfony), and frontends (Next.js, static sites, SaaS dashboards). Run `scaffoldkit list` to see all of them.
 - Interactive TUI, or fully non-interactive generation via `--var`/`--non-interactive` for scripting.
 - `from-planforge` consumes an agent-planforge export directly, mapping its suggested variables onto the blueprint contract.
-- AI-context output: every blueprint ships `AI_CONTEXT.md`, an architecture doc, and an ADR seed for downstream Claude Code or Cursor sessions.
+- AI-context output: blueprints ship an architecture doc and an ADR seed, and by default agent context files (`AI_CONTEXT.md` or an `.ai/` tree) for downstream Claude Code or Cursor sessions.
 - Install via a one-line script, Docker, or pipx; Docker needs no Python on the host.
 - Path-containment guard rejects generated paths that would escape the target directory.
 
 ## Quick start
 
-Prerequisites: git, and either Docker or nothing else (`./install.sh` installs `uv`, which then manages Python).
+Prerequisites: git, bash and curl (`./install.sh` installs `uv`, which provides Python 3.11+), or Docker for `./install.sh --docker`. The pipx and manual install paths need Python 3.11+.
 
 ```bash
 git clone https://github.com/LanNguyenSi/scaffoldkit.git
