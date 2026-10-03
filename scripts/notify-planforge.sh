@@ -23,6 +23,12 @@
 #                          the all-zeros SHA (GitHub's "branch just
 #                          created" sentinel) is treated as "no prior
 #                          commit to diff against".
+#   PLANFORGE_BOT_AGENT_ID  The bot's own agent-token id. agent-tasks has no
+#                          whoami route for agent tokens, so when set it is
+#                          compared with a task's createdByAgentId to decide
+#                          whether the bot may close the task. When unset,
+#                          any task with a createdByAgentId is attempted and
+#                          the backend's creator rule has the final say.
 #   PLANFORGE_LOOKBACK_LIMIT  How many recent tasks to scan for an existing
 #                          open bump task to dedupe/supersede. Default 100.
 #
@@ -38,10 +44,12 @@
 #   - otherwise every OTHER open task matching the pattern (i.e. for an
 #     OLDER sha) gets best-effort superseded, one at a time: we re-fetch
 #     it via GET /api/tasks/{id} (the list response's description can be
-#     truncated/stale) and respec its fresh description with a
-#     "Superseded by <newer sha7>" note (requires this bot to be the
-#     task's creator; failures here are logged and non-fatal). The new
-#     task is created regardless of how the supersede attempts went.
+#     truncated/stale). If the bot created it, it is closed via
+#     POST /api/tasks/{id}/creator-abandon with a "Superseded by <newer
+#     sha7>" reason; otherwise, or if the abandon is rejected, its fresh
+#     description is respecced with that note instead. All failures here
+#     are logged and non-fatal. The new task is created regardless of how
+#     the supersede attempts went.
 set -euo pipefail
 
 log() { printf '%s\n' "$*" >&2; }
@@ -193,12 +201,32 @@ if [ -n "$OLDER_IDS" ]; then
     # must degrade to the empty-description skip below, not abort the run
     # under set -e before the create fires.
     FETCHED_DESCRIPTION="$(jq -r '.task.description // .description // empty' "$API_BODY_FILE" 2>/dev/null || true)"
+    SUPERSEDE_REASON="$(printf 'Superseded by %s (a newer scaffoldkit commit landed on master; see the newer bump task for current status).' "$NEW_SHA7")"
+
+    # Close the task outright when this bot created it. createdByAgentId is
+    # null for human-created tasks; the backend enforces the creator rule, so
+    # a rejected call just falls through to the annotate-only path below.
+    CREATOR_AGENT_ID="$(jq -r '.task.createdByAgentId // .createdByAgentId // empty' "$API_BODY_FILE" 2>/dev/null || true)"
+    if [ -z "$CREATOR_AGENT_ID" ]; then
+      warn "Task ${OLDER_ID} was not created by an agent token; annotating it only instead of closing it."
+    elif [ -n "${PLANFORGE_BOT_AGENT_ID:-}" ] && [ "$CREATOR_AGENT_ID" != "$PLANFORGE_BOT_AGENT_ID" ]; then
+      warn "Task ${OLDER_ID} was created by another agent (${CREATOR_AGENT_ID}), not this bot; annotating it only instead of closing it."
+    else
+      ABANDON_BODY="$(jq -n --arg reason "$SUPERSEDE_REASON" '{reason: $reason}')"
+      api_call POST "/api/tasks/${OLDER_ID}/creator-abandon" "$ABANDON_BODY"
+      if [ "$API_STATUS" = "200" ]; then
+        notice "Closed older open bump task ${OLDER_ID} (superseded by ${NEW_SHA7})."
+        continue
+      fi
+      warn "Could not close task ${OLDER_ID} via creator-abandon (HTTP ${API_STATUS}); falling back to annotating it only."
+    fi
+
     if [ -z "$FETCHED_DESCRIPTION" ]; then
       warn "Task ${OLDER_ID}'s fetched description is empty; skipping supersede to avoid clobbering it."
       continue
     fi
 
-    SUPERSEDE_NOTE="$(printf '\n\n---\nSuperseded by %s (a newer scaffoldkit commit landed on master; see the newer bump task for current status).\n' "$NEW_SHA7")"
+    SUPERSEDE_NOTE="$(printf '\n\n---\n%s\n' "$SUPERSEDE_REASON")"
     SUPERSEDE_DESCRIPTION="${FETCHED_DESCRIPTION}${SUPERSEDE_NOTE}"
     RESPEC_BODY="$(jq -n --arg description "$SUPERSEDE_DESCRIPTION" '{description: $description}')"
 

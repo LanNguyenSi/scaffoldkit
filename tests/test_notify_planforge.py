@@ -494,6 +494,130 @@ class TestSupersede:
             assert server.requests[-1].method == "POST"
             assert server.requests[-1].path == f"/api/projects/{PROJECT_ID}/tasks"
 
+    def _creator_abandon_routes(
+        self, created_by_agent_id: str | None, abandon: tuple[int, dict] | None
+    ) -> dict:
+        older_description = "Commit: 1111111111111111111111111111111111aaaa (1111111)\n"
+        task = {"id": "older-1", "description": older_description}
+        if created_by_agent_id is not None:
+            task["createdByAgentId"] = created_by_agent_id
+        routes = {
+            ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (
+                200,
+                {
+                    "tasks": [
+                        {
+                            "id": "older-1",
+                            "status": "open",
+                            "title": "chore(deps): bump scaffoldkit to 1111111",
+                            "description": older_description,
+                        }
+                    ]
+                },
+            ),
+            ("GET", "/api/tasks/older-1"): (200, {"task": task}),
+            ("POST", "/api/tasks/older-1/respec"): (200, {"task": {"id": "older-1"}}),
+            ("POST", f"/api/projects/{PROJECT_ID}/tasks"): (201, {"task": {"id": "created"}}),
+        }
+        if abandon is not None:
+            routes[("POST", "/api/tasks/older-1/creator-abandon")] = abandon
+        return routes
+
+    def _run_with(self, routes: dict, hermetic_repo, extra_env: dict | None = None):
+        repo, new_sha, old_sha = hermetic_repo
+        with MockPlanforgeServer(routes=routes) as server:
+            result = _run_script(
+                {
+                    "PLANFORGE_BOT_TOKEN": TOKEN,
+                    "PLANFORGE_BASE_URL": server.base_url,
+                    "PLANFORGE_PROJECT_ID": PROJECT_ID,
+                    "GITHUB_REPOSITORY": "LanNguyenSi/scaffoldkit",
+                    "NEW_SHA": new_sha,
+                    "OLD_SHA": old_sha,
+                    **(extra_env or {}),
+                },
+                cwd=repo,
+            )
+            calls = [(r.method, r.path.split("?")[0]) for r in server.requests]
+            return result, calls, list(server.requests)
+
+    def test_no_older_task_makes_no_close_or_annotate_calls(
+        self, hermetic_repo: tuple[Path, str, str]
+    ):
+        routes = {
+            ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (200, {"tasks": []}),
+            ("POST", f"/api/projects/{PROJECT_ID}/tasks"): (201, {"task": {"id": "created"}}),
+        }
+        result, calls, _ = self._run_with(routes, hermetic_repo)
+        assert result.returncode == 0, result.stderr
+        assert calls == [
+            ("GET", f"/api/projects/{PROJECT_ID}/tasks"),
+            ("POST", f"/api/projects/{PROJECT_ID}/tasks"),
+        ]
+
+    def test_bot_created_older_task_is_closed_via_creator_abandon(
+        self, hermetic_repo: tuple[Path, str, str]
+    ):
+        _, new_sha, _ = hermetic_repo
+        routes = self._creator_abandon_routes("bot-token-id", (200, {"task": {"id": "older-1"}}))
+        result, calls, requests = self._run_with(
+            routes, hermetic_repo, {"PLANFORGE_BOT_AGENT_ID": "bot-token-id"}
+        )
+        assert result.returncode == 0, result.stderr
+        assert calls == [
+            ("GET", f"/api/projects/{PROJECT_ID}/tasks"),
+            ("GET", "/api/tasks/older-1"),
+            ("POST", "/api/tasks/older-1/creator-abandon"),
+            ("POST", f"/api/projects/{PROJECT_ID}/tasks"),
+        ]
+        reason = requests[2].json_body["reason"]
+        assert f"Superseded by {new_sha[:7]}" in reason
+        assert "Closed older open bump task older-1" in result.stderr
+
+    def test_older_task_created_by_someone_else_is_annotated_only(
+        self, hermetic_repo: tuple[Path, str, str]
+    ):
+        _, new_sha, _ = hermetic_repo
+        routes = self._creator_abandon_routes(None, None)
+        result, calls, requests = self._run_with(
+            routes, hermetic_repo, {"PLANFORGE_BOT_AGENT_ID": "bot-token-id"}
+        )
+        assert result.returncode == 0, result.stderr
+        assert ("POST", "/api/tasks/older-1/creator-abandon") not in calls
+        assert ("POST", "/api/tasks/older-1/respec") in calls
+        assert f"Superseded by {new_sha[:7]}" in requests[2].json_body["description"]
+        assert "was not created by an agent token" in result.stderr
+        assert "::warning::" in result.stderr
+
+    def test_older_task_created_by_other_agent_is_annotated_only(
+        self, hermetic_repo: tuple[Path, str, str]
+    ):
+        routes = self._creator_abandon_routes("some-other-agent", None)
+        result, calls, _ = self._run_with(
+            routes, hermetic_repo, {"PLANFORGE_BOT_AGENT_ID": "bot-token-id"}
+        )
+        assert result.returncode == 0, result.stderr
+        assert ("POST", "/api/tasks/older-1/creator-abandon") not in calls
+        assert ("POST", "/api/tasks/older-1/respec") in calls
+        assert "not this bot" in result.stderr
+
+    def test_rejected_creator_abandon_falls_back_to_annotate_and_still_creates(
+        self, hermetic_repo: tuple[Path, str, str]
+    ):
+        _, new_sha, _ = hermetic_repo
+        routes = self._creator_abandon_routes("bot-token-id", (403, {"error": "forbidden"}))
+        result, calls, requests = self._run_with(routes, hermetic_repo)
+        assert result.returncode == 0, result.stderr
+        assert calls == [
+            ("GET", f"/api/projects/{PROJECT_ID}/tasks"),
+            ("GET", "/api/tasks/older-1"),
+            ("POST", "/api/tasks/older-1/creator-abandon"),
+            ("POST", "/api/tasks/older-1/respec"),
+            ("POST", f"/api/projects/{PROJECT_ID}/tasks"),
+        ]
+        assert f"Superseded by {new_sha[:7]}" in requests[3].json_body["description"]
+        assert "Could not close task older-1 via creator-abandon (HTTP 403)" in result.stderr
+
     def test_respec_failure_degrades_to_warning_and_still_creates(
         self, hermetic_repo: tuple[Path, str, str]
     ):
