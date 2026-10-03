@@ -66,10 +66,14 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Set up Python ${{ matrix.python-version }}
-        run: uv python install ${{ matrix.python-version }}
+        env:
+          PY_VERSION: ${{ matrix.python-version }}
+        run: uv python install "$PY_VERSION"
 
       - name: Install dependencies
-        run: uv sync --python ${{ matrix.python-version }} --extra dev
+        env:
+          PY_VERSION: ${{ matrix.python-version }}
+        run: uv sync --python "$PY_VERSION" --extra dev
 
       - name: Run tests
         run: uv run pytest tests/ -v --tb=short --cov=src/scaffoldkit --cov-report=term-missing --cov-fail-under=83
