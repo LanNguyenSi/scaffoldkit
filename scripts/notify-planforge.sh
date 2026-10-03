@@ -44,10 +44,12 @@
 #   - otherwise every OTHER open task matching the pattern (i.e. for an
 #     OLDER sha) gets best-effort superseded, one at a time: we re-fetch
 #     it via GET /api/tasks/{id} (the list response's description can be
-#     truncated/stale) and respec its fresh description with a
-#     "Superseded by <newer sha7>" note (requires this bot to be the
-#     task's creator; failures here are logged and non-fatal). The new
-#     task is created regardless of how the supersede attempts went.
+#     truncated/stale). If the bot created it, it is closed via
+#     POST /api/tasks/{id}/creator-abandon with a "Superseded by <newer
+#     sha7>" reason; otherwise, or if the abandon is rejected, its fresh
+#     description is respecced with that note instead. All failures here
+#     are logged and non-fatal. The new task is created regardless of how
+#     the supersede attempts went.
 set -euo pipefail
 
 log() { printf '%s\n' "$*" >&2; }
