@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `scripts/notify-planforge.sh` now closes superseded agent-planforge bump tasks through the agent-tasks `creator-abandon` verb (reason: the "Superseded by <sha7>" note) when the bot created them, so at most one bump task stays open. Tasks created by someone else, or a rejected abandon call, keep the annotate-only behaviour with a warning and never fail the workflow. Optional env `PLANFORGE_BOT_AGENT_ID` narrows which tasks the bot attempts to close.
 - Blueprint-generated GitHub Actions workflows now use the Node 24-based
   `actions/checkout@v5` and `actions/setup-node@v5` majors.
 - CI: `ci.yml` and `release.yml` now pass step values into `run:` scripts through `env:` and shell variables instead of interpolating `${{ }}` expressions into the script text. No behavior change for normal tags and versions.
