@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Blueprint-generated GitHub Actions workflows now use the Node 24-based
   `actions/checkout@v5` and `actions/setup-node@v5` majors.
-- CI: `ci.yml` and `release.yml` now pass step values (release version, matrix entries, image tags) into `run:` scripts through `env:` and shell variables instead of interpolating `${{ }}` expressions into the script text. No behavior change for normal tags and versions.
+- CI: `ci.yml` and `release.yml` now pass step values into `run:` scripts through `env:` and shell variables instead of interpolating `${{ }}` expressions into the script text. No behavior change for normal tags and versions.
 
 ## [0.4.1] - 2026-06-09
 
