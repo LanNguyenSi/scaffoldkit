@@ -4,8 +4,10 @@ A blueprint is a self-contained folder that tells ScaffoldKit how to generate a 
 
 ## Folder layout
 
+Shipped blueprints live in `src/scaffoldkit/blueprints/`; custom ones live in any directory passed via `--blueprints-dir` or `SCAFFOLDKIT_BLUEPRINTS_DIR`. Each blueprint folder has this layout:
+
 ```
-src/scaffoldkit/blueprints/<name>/
+<blueprints-dir>/<name>/
 ├── blueprint.yaml    # Definition: metadata, variables, file mappings
 ├── templates/        # Jinja2 templates (rendered with variables)
 └── static/           # Static files (copied as-is)
