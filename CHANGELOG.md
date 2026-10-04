@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-10-04
+
+### Fixed
+
+- Raised the declared dependency floors to non-vulnerable minimums: `jinja2>=3.1.6` (was `>=3.1`) and `pydantic>=2.4.0` (was `>=2.0`), so consumers pinning the lower bound no longer admit versions with published CVEs. Resolved versions on a fresh install are unchanged.
+
 ### Changed
 
 - `scripts/notify-planforge.sh` now closes superseded agent-planforge bump tasks through the agent-tasks `creator-abandon` verb (reason: the "Superseded by <sha7>" note) when the bot created them, so at most one bump task stays open. Tasks created by someone else, or a rejected abandon call, keep the annotate-only behaviour with a warning and never fail the workflow. Optional env `PLANFORGE_BOT_AGENT_ID` narrows which tasks the bot attempts to close.
@@ -140,7 +146,8 @@ A `Dockerfile` and `docker-compose.yml` are shipped for the Docker path.
 - Single-user local execution; no concurrency guards.
 - Blueprint variables are flat (no nested objects).
 
-[Unreleased]: https://github.com/LanNguyenSi/scaffoldkit/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/LanNguyenSi/scaffoldkit/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/LanNguyenSi/scaffoldkit/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/LanNguyenSi/scaffoldkit/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/LanNguyenSi/scaffoldkit/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/LanNguyenSi/scaffoldkit/compare/v0.2.0...v0.3.0
