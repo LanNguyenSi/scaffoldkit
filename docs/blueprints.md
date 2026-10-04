@@ -5,7 +5,7 @@ A blueprint is a self-contained folder that tells ScaffoldKit how to generate a 
 ## Folder layout
 
 ```
-blueprints/<name>/
+src/scaffoldkit/blueprints/<name>/
 ├── blueprint.yaml    # Definition: metadata, variables, file mappings
 ├── templates/        # Jinja2 templates (rendered with variables)
 └── static/           # Static files (copied as-is)
