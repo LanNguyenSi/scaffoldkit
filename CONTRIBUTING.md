@@ -61,7 +61,7 @@ src/scaffoldkit/
   planforge.py        # agent-planforge export schema and variable mapping
   scaffold_blueprint.py # init-blueprint starter generator
 
-blueprints/           # Built-in blueprint definitions
+  blueprints/         # Built-in blueprint definitions
 tests/                # Test suite
 ```
 
@@ -69,9 +69,9 @@ See [docs/architecture.md](docs/architecture.md#module-map) for the full module 
 
 ## Adding a New Blueprint
 
-1. Create a new directory under `blueprints/`:
+1. Create a new directory under `src/scaffoldkit/blueprints/`:
    ```
-   blueprints/my-blueprint/
+   src/scaffoldkit/blueprints/my-blueprint/
    ├── blueprint.yaml
    ├── templates/
    └── static/

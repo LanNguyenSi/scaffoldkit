@@ -42,7 +42,7 @@ Examples:
   scaffoldkit-docker --build --output ./output
 
   # Scaffold a specific blueprint non-interactively
-  scaffoldkit-docker -- new saas-dashboard --output-dir my-project
+  scaffoldkit-docker --output ./output -- new saas-dashboard --target my-project
 
   # List available blueprints
   scaffoldkit-docker -- list
