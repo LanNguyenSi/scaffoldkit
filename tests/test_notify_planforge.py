@@ -1216,3 +1216,126 @@ class TestRevertTitlePrefix:
             create_req = server.requests[-1]
             expected_title = f"chore(deps): bump scaffoldkit to {new_sha7}"
             assert create_req.json_body["title"] == expected_title
+
+
+def _make_repo_with_changes(
+    tmp_path: Path, changes: dict[str, str | None], renames: dict[str, str] | None = None
+) -> tuple[Path, str, str]:
+    """Two-commit repo whose second commit writes ``changes`` (path -> content,
+    ``None`` deletes the path) and applies ``renames`` (old -> new) on top of
+    a base tree with ``src/app.py``, ``README.md`` and ``docs/guide.md``."""
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git("init", "-q", cwd=repo)
+    _git("config", "user.email", "ci@example.com", cwd=repo)
+    _git("config", "user.name", "CI", cwd=repo)
+    for rel, content in {
+        "src/app.py": "print('app')\n",
+        "README.md": "# readme\n",
+        "docs/guide.md": "# guide\n",
+    }.items():
+        target = repo / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content)
+    _git("add", "-A", cwd=repo)
+    _git("commit", "-q", "-m", "Initial commit", cwd=repo)
+    old_sha = _git("rev-parse", "HEAD", cwd=repo)
+    for old, new in (renames or {}).items():
+        (repo / new).parent.mkdir(parents=True, exist_ok=True)
+        _git("mv", old, new, cwd=repo)
+    for rel, content in changes.items():
+        target = repo / rel
+        if content is None:
+            _git("rm", "-q", rel, cwd=repo)
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content)
+        _git("add", rel, cwd=repo)
+    _git("commit", "-q", "--allow-empty", "-m", "feat: second commit", cwd=repo)
+    new_sha = _git("rev-parse", "HEAD", cwd=repo)
+    return repo, new_sha, old_sha
+
+
+class TestDocsOnlySkip:
+    ROUTES = {  # noqa: RUF012 - read-only test fixture, never mutated
+        ("GET", f"/api/projects/{PROJECT_ID}/tasks"): (200, {"tasks": []}),
+        ("POST", f"/api/projects/{PROJECT_ID}/tasks"): (201, {"task": {"id": "created-task-1"}}),
+    }
+
+    def _run(self, repo: Path, new_sha: str, old_sha: str):
+        with MockPlanforgeServer(routes=dict(self.ROUTES)) as server:
+            result = _run_script(
+                {
+                    "PLANFORGE_BOT_TOKEN": TOKEN,
+                    "PLANFORGE_BASE_URL": server.base_url,
+                    "PLANFORGE_PROJECT_ID": PROJECT_ID,
+                    "GITHUB_REPOSITORY": "LanNguyenSi/scaffoldkit",
+                    "NEW_SHA": new_sha,
+                    "OLD_SHA": old_sha,
+                },
+                cwd=repo,
+            )
+            calls = [(r.method, r.path.split("?")[0]) for r in server.requests]
+        return result, calls
+
+    def _assert_created(self, result, calls):
+        assert result.returncode == 0, result.stderr
+        assert ("POST", f"/api/projects/{PROJECT_ID}/tasks") in calls
+        assert "changes documentation only" not in result.stderr
+
+    def test_docs_only_push_makes_no_api_call(self, tmp_path: Path):
+        repo, new_sha, old_sha = _make_repo_with_changes(
+            tmp_path,
+            {
+                "README.md": "# readme v2\n",
+                "CHANGELOG.md": "# changelog\n",
+                "docs/guide.md": "# guide v2\n",
+                "docs/nested/deep.md": "# deep\n",
+                "LICENSE": "MIT\n",
+                ".github/pull_request_template.md": "template\n",
+                ".github/ISSUE_TEMPLATE/bug.md": "bug\n",
+            },
+        )
+        result, calls = self._run(repo, new_sha, old_sha)
+        assert result.returncode == 0, result.stderr
+        assert calls == []
+        assert "::notice::" in result.stderr
+        assert "changes documentation only" in result.stderr
+
+    def test_deleting_a_doc_only_is_docs_only(self, tmp_path: Path):
+        repo, new_sha, old_sha = _make_repo_with_changes(tmp_path, {"docs/guide.md": None})
+        result, calls = self._run(repo, new_sha, old_sha)
+        assert result.returncode == 0, result.stderr
+        assert calls == []
+
+    def test_code_change_next_to_docs_creates_task(self, tmp_path: Path):
+        repo, new_sha, old_sha = _make_repo_with_changes(
+            tmp_path, {"README.md": "# readme v2\n", "src/app.py": "print('v2')\n"}
+        )
+        self._assert_created(*self._run(repo, new_sha, old_sha))
+
+    def test_nested_markdown_outside_docs_creates_task(self, tmp_path: Path):
+        repo, new_sha, old_sha = _make_repo_with_changes(
+            tmp_path, {"src/scaffoldkit/blueprints/web/README.md": "# template readme\n"}
+        )
+        self._assert_created(*self._run(repo, new_sha, old_sha))
+
+    def test_script_change_creates_task(self, tmp_path: Path):
+        repo, new_sha, old_sha = _make_repo_with_changes(
+            tmp_path, {"scripts/notify-planforge.sh": "# comment only\n"}
+        )
+        self._assert_created(*self._run(repo, new_sha, old_sha))
+
+    def test_rename_from_src_into_docs_creates_task(self, tmp_path: Path):
+        repo, new_sha, old_sha = _make_repo_with_changes(
+            tmp_path, {}, renames={"src/app.py": "docs/app.py"}
+        )
+        self._assert_created(*self._run(repo, new_sha, old_sha))
+
+    def test_empty_change_list_creates_task(self, tmp_path: Path):
+        repo, new_sha, old_sha = _make_repo_with_changes(tmp_path, {})
+        self._assert_created(*self._run(repo, new_sha, old_sha))
+
+    def test_initial_push_is_never_skipped(self, tmp_path: Path):
+        repo, new_sha, _old_sha = _make_repo_with_changes(tmp_path, {"README.md": "# v2\n"})
+        self._assert_created(*self._run(repo, new_sha, ALL_ZERO_SHA))

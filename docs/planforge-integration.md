@@ -155,6 +155,8 @@ agent-planforge owns the export contract. Its CLI (`node scripts/bootstrap-plan.
 
 The relationship also runs in the other direction: agent-planforge's `server/Dockerfile` pins ScaffoldKit to a fixed commit SHA (`SCAFFOLDKIT_REF`). Every merge to `master` here auto-opens a `chore(deps): bump scaffoldkit to <sha7>` task in agent-planforge's agent-tasks project (see `.github/workflows/notify-planforge.yml` and `scripts/notify-planforge.sh`). This keeps the drift between ScaffoldKit's default branch and the pinned SHA visible instead of silent; the task carries the compare URL, the changed files, and a re-pickup checklist for whoever bumps the pin.
 
+**Documentation-only pushes are skipped.** When every file changed by the push is documentation (root-level `*.md`, anything under `docs/`, `LICENSE`, `.github/pull_request_template.md` or `.github/ISSUE_TEMPLATE/`), the script logs a `::notice::` and opens no task, because such a push cannot change what agent-planforge pins. A Markdown file elsewhere (for example a blueprint template's `README.md` under `src/`), any script change (including comment-only edits), a rename that touches a non-documentation path, a push with no changed files and the first push to a branch always open the task.
+
 **Provisioning the notification.** The workflow no-ops (green, with a visible `::notice::`) until the operator provisions the bot token:
 
 ```bash

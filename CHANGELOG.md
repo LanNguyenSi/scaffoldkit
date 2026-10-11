@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `scripts/notify-planforge.sh` no longer opens an agent-planforge bump task for a push to master that changes only documentation (root-level `*.md`, `docs/`, `LICENSE`, the pull request and issue templates); it logs a notice instead (task fad112cc). Script changes, including comment-only ones, Markdown outside `docs/`, renames out of a non-documentation path and empty pushes still open the task. See `docs/planforge-integration.md`.
+
 ## [0.4.2] - 2026-10-04
 
 ### Fixed
