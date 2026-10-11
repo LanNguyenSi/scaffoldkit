@@ -51,11 +51,32 @@
 #     description is respecced with that note instead. All failures here
 #     are logged and non-fatal. The new task is created regardless of how
 #     the supersede attempts went.
+#
+# Docs-only skip: when OLD_SHA is known and every file changed in
+# OLD_SHA..NEW_SHA is documentation (root-level *.md, docs/**, LICENSE,
+# .github/pull_request_template.md, .github/ISSUE_TEMPLATE/**), the script
+# logs a notice and exits 0 without any API call: such a push cannot change
+# what agent-planforge pins. An empty change list is not docs-only, renames
+# count both paths, and script changes (even comment-only) count as code.
 set -euo pipefail
 
 log() { printf '%s\n' "$*" >&2; }
 notice() { printf '::notice::%s\n' "$*" >&2; }
 warn() { printf '::warning::%s\n' "$*" >&2; }
+
+# True when $1 (a repo-relative path) is documentation only. `*` in a case
+# pattern also matches `/`, so root-level files are matched separately from
+# nested ones.
+is_docs_only_path() {
+  case "$1" in
+    */*) ;;
+    *.md | LICENSE) return 0 ;;
+  esac
+  case "$1" in
+    docs/* | .github/ISSUE_TEMPLATE/* | .github/pull_request_template.md) return 0 ;;
+  esac
+  return 1
+}
 
 if [ -z "${PLANFORGE_BOT_TOKEN:-}" ]; then
   notice "PLANFORGE_BOT_TOKEN is not set; skipping the agent-planforge bump-task notification. This is expected until the operator provisions the secret (see README)."
@@ -93,6 +114,22 @@ else
   OLD_SHA=""
   COMPARE_LINE="Compare: https://github.com/${GITHUB_REPOSITORY}/commit/${NEW_SHA} (initial push to this branch; no prior commit to diff against)"
   FILES_STAT="(initial push; no prior commit to diff against)"
+fi
+
+if [ -n "$OLD_SHA" ]; then
+  CHANGED_COUNT=0
+  DOCS_ONLY=1
+  while IFS= read -r -d '' CHANGED_PATH; do
+    CHANGED_COUNT=$((CHANGED_COUNT + 1))
+    if ! is_docs_only_path "$CHANGED_PATH"; then
+      DOCS_ONLY=0
+      break
+    fi
+  done < <(git diff --no-renames --name-only -z "${OLD_SHA}..${NEW_SHA}")
+  if [ "$CHANGED_COUNT" -gt 0 ] && [ "$DOCS_ONLY" -eq 1 ]; then
+    notice "Push ${OLD_SHA:0:7}..${NEW_SHA7} changes documentation only; skipping the agent-planforge bump task."
+    exit 0
+  fi
 fi
 
 # SC2016: single-quoted on purpose - the literal backticks around
