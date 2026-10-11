@@ -52,11 +52,13 @@ flowchart TD
     NEW["scaffoldkit new<br/>cli.py"] --> BPD["--blueprints-dir or get_blueprints_dir()<br/>env / checkout / packaged"]
     PF["scaffoldkit from-planforge<br/>cli.py"] --> EXP["load_planforge_export()<br/>planforge.py"]
     EXP --> BPD
-    BPD -->|new| PICK["BLUEPRINT_NAME or select_blueprint()<br/>tui.py"]
+    BPD -->|new| PICK{"BLUEPRINT_NAME given?"}
     BPD -->|from-planforge| RES["resolve_blueprint_path()<br/>planforge.py"]
-    PICK --> LOAD["load_blueprint()<br/>blueprint_loader.py"]
+    PICK -->|no| SEL["select_blueprint() in tui.py<br/>loads every blueprint<br/>to build the choice list"]
+    PICK -->|yes| LOAD["load_blueprint()<br/>blueprint_loader.py"]
     RES --> LOAD
     LOAD -->|new| COLLECT["collect_variables()<br/>--var values, defaults or prompts"]
+    SEL -->|chosen blueprint| COLLECT
     COLLECT --> TARGET["--target or prompt_target_dir()"]
     TARGET --> CONFIRM{"--non-interactive or --yes?"}
     CONFIRM -->|no| ASK["confirm_generation()"]
@@ -74,7 +76,7 @@ flowchart TD
     subgraph GENERATE["generate() in generator.py"]
         PRUNE["prune_inactive_variables()"] --> VAL{"validate_variables()<br/>errors?"}
         VAL -->|no| CTX["build_template_context()<br/>variables, is_* flags, metadata"]
-        CTX --> DIRS["target dir and directories[]<br/>render_string, _safe_join"]
+        CTX --> DIRS["ensure_directory(target_dir)<br/>directories[]: render_string,<br/>_safe_join, ensure_directory"]
         DIRS --> TPL["templates[]<br/>condition, render target, _safe_join,<br/>render_template, write_file"]
         TPL --> STATIC["static_files[]<br/>condition, render target, _safe_join,<br/>copy_file (no rendering)"]
     end
@@ -190,9 +192,9 @@ The pytest suite covers:
 - **TUI.** Non-interactive variable collection.
 - **Planforge.** Export loading, variable mapping and inference helpers.
 - **init-blueprint.** The starter blueprint written by `scaffold_blueprint.py`.
-- **Notify script.** A dry run of `scripts/notify-planforge.sh`.
+- **Notify script.** Runs `scripts/notify-planforge.sh` against a local HTTP mock: request shape, idempotency, supersede and error handling.
 - **Per-blueprint tests.** Generation and starter-file checks for the shipped blueprints (`test_*_starter.py`, `test_*_blueprint*.py` and similar).
-- **Blueprint contract audit.** Every declared variable is referenced by a template or static file or used as a `condition`, `use_docker`/`use_ci` gate matching files, runnable blueprints declare their primary manifests, and generated workflows pin the expected action majors.
+- **Blueprint contract audit.** Every declared variable is referenced by a template or static file or used as the `condition` of a `templates` or `static_files` entry, `use_docker`/`use_ci` gate matching files, runnable blueprints declare their primary manifests, and generated workflows pin the expected action majors.
 - **Integration.** End-to-end generation across stack/style/feature variations.
 
 CI runs ruff lint and format checks, shellcheck on `scripts/*.sh`, mypy strict, pytest on Python 3.11, 3.12 and 3.13 with the coverage floor set in `ci.yml`, and a build and install check on every push and pull request to `master`.

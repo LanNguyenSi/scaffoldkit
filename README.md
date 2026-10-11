@@ -6,7 +6,7 @@ AI-aided project scaffolding from declarative blueprints.
 
 ## Overview
 
-ScaffoldKit generates complete project skeletons (source layout, docs, ways-of-working, ADRs, page templates, AI context files) from a folder of YAML blueprints plus Jinja2 templates. Each invocation resolves the blueprint, validates and prunes its variables, then renders templates and copies static files into the target directory; see [docs/architecture.md](docs/architecture.md) for the full pipeline and module map. It is the scaffolding engine behind [project-forge](https://github.com/LanNguyenSi/project-forge) and consumes the `scaffoldkit-input.json` export from [agent-planforge](https://github.com/LanNguyenSi/agent-planforge), so blueprints written here flow straight into both downstream tools.
+ScaffoldKit generates complete project skeletons (source layout, docs, ways-of-working, ADRs, page templates, AI context files) from a folder of YAML blueprints plus Jinja2 templates. Each invocation resolves the blueprint, prunes inactive variables and validates the rest, then creates directories, renders templates and copies static files into the target directory; see [docs/architecture.md](docs/architecture.md) for the full pipeline and module map. It is the scaffolding engine behind [project-forge](https://github.com/LanNguyenSi/project-forge) and consumes the `scaffoldkit-input.json` export from [agent-planforge](https://github.com/LanNguyenSi/agent-planforge), so blueprints written here flow straight into both downstream tools.
 
 ## Key features
 

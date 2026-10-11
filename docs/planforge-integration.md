@@ -39,7 +39,8 @@ sequenceDiagram
     CLI->>PF: ignored_suggested_variables(), optional_section_warnings()
     CLI->>PF: build_variables_from_planforge()
     opt --no-ai-context
-        CLI->>CLI: ai_context = false, if the blueprint declares it
+        Note right of CLI: only if the blueprint declares ai_context
+        CLI->>CLI: ai_context = false
     end
     CLI->>G: generate(GenerationContext)
     G-->>CLI: GenerationResult

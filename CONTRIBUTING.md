@@ -81,7 +81,7 @@ See [docs/architecture.md](docs/architecture.md#module-map) for the full module 
 
 3. Add Jinja2 templates in `templates/` and static files in `static/`.
 
-4. Add a test module for the blueprint, following the existing per-blueprint tests such as `tests/test_static_site_starter.py`, that generates the blueprint into a temporary directory and checks its key files. The blueprint must also pass `tests/test_blueprint_contract_audit.py`, which runs over every blueprint folder: every declared variable is referenced by a template or static file or used as a `condition`; a `use_docker` variable gates a Docker file; a `use_ci` variable gates a `.github/workflows/` file; and generated workflow templates use the action majors that test pins.
+4. Add a test module for the blueprint, following the existing per-blueprint tests such as `tests/test_static_site_starter.py`, that generates the blueprint into a temporary directory and checks its key files. The blueprint must also pass `tests/test_blueprint_contract_audit.py`, which runs over every blueprint folder: every declared variable is referenced by a template or static file or used as the `condition` of a `templates` or `static_files` entry; a `use_docker` variable gates a Docker file; a `use_ci` variable gates a `.github/workflows/` file; and generated workflow templates use the action majors that test pins.
 
 5. Run `scaffoldkit list` to verify discovery works.
 
@@ -107,7 +107,7 @@ test: add edge case tests for renderer
 
 ## Releasing
 
-1. Bump `version` in `pyproject.toml`.
+1. Bump `version` in `pyproject.toml` and `__version__` in `src/scaffoldkit/__init__.py`.
 2. Move the `[Unreleased]` entries in `CHANGELOG.md` under a new `## [x.y.z]` section.
 3. Merge the change to `master`.
 4. Push the tag `vx.y.z`.
