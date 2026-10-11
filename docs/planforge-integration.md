@@ -137,7 +137,7 @@ Unless a row says otherwise, the combined text of `projectName`, `summary`, `fea
 | `use_auth` | Forced `false` when `public-only`/`anonymous`/`no auth` appears. |
 | `use_openapi` | Default `true`. |
 | `db_provider` / `database` | Searches `stack.dataStore`, `constraints`, `features` and `summary`: `sqlite` or `mysql` select that choice, `mongo` selects `mongodb` (for `database` only), otherwise `postgresql`. |
-| `framework` | `express` when `stack.hint` contains the phrase `typescript service stack` (the hint agent-planforge emits for TypeScript stacks), otherwise `fastapi`. |
+| `framework` | `express` when `stack.hint` contains the phrase `typescript service stack` (the hint agent-planforge emits for a TypeScript service; its TypeScript CLI and web-application hints do not match), otherwise `fastapi`. |
 | `auth_strategy` | Searches `summary`, `features` and `constraints`: `public-only`/`anonymous` -> `none`, `api key`/`api-key` -> `api-key` (`token` for django-drf), `session` -> `session` (django-drf only), `oauth2` -> `oauth2`, `sso`/`next-auth` -> `next-auth` (nextjs-fullstack only), otherwise `jwt`. |
 
 Blueprint-specific extras live alongside these rules. See `src/scaffoldkit/planforge.py` for the canonical implementation.
