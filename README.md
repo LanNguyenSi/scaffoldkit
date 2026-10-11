@@ -12,7 +12,7 @@ ScaffoldKit generates complete project skeletons (source layout, docs, ways-of-w
 
 - Declarative blueprints: a `blueprint.yaml` plus Jinja2 templates; adding a stack is adding a folder, not editing the engine.
 - 12 shipped blueprints spanning CLI tools, backend APIs (FastAPI, Express, Django REST, Spring Boot, Symfony), and frontends (Next.js, static sites, SaaS dashboards). Run `scaffoldkit list` to see all of them.
-- Interactive TUI, or fully non-interactive generation via `--var`/`--non-interactive` for scripting.
+- Interactive TUI, or fully non-interactive generation via `--var`, `--non-interactive` and `--target` for scripting.
 - `from-planforge` consumes an agent-planforge export directly, mapping its suggested variables onto the blueprint contract.
 - AI-context output: blueprints ship an architecture doc and an ADR seed, and by default agent context files (`AI_CONTEXT.md` or an `.ai/` tree) for downstream Claude Code or Cursor sessions.
 - Install via a one-line script, Docker, or pipx; Docker needs no Python on the host.
@@ -52,7 +52,7 @@ Omit the blueprint name for the interactive picker, or add `--dry-run` to previe
 
 | If you want to... | Read |
 |------|------|
-| See every blueprint, its variables, and the YAML/Jinja format | [docs/blueprints.md](docs/blueprints.md) |
+| See every shipped blueprint, where its variables are declared, and the YAML/Jinja format | [docs/blueprints.md](docs/blueprints.md) |
 | Pipe an agent-planforge export into `scaffoldkit from-planforge` | [docs/planforge-integration.md](docs/planforge-integration.md) |
 | Understand how generation works (loader, renderer, filesystem) | [docs/architecture.md](docs/architecture.md) |
 | Full CLI reference (`new`, `from-planforge`, `init-blueprint`, `list`) | [docs/cli.md](docs/cli.md) |
@@ -65,7 +65,7 @@ source .venv/bin/activate
 make check            # run lint + typecheck + test
 ```
 
-CI runs lint, mypy strict, pytest on Python 3.11/3.12/3.13, and a build+install verification on every push and PR to `master`. Pushes to `master` also open a bump task in agent-planforge; see [docs/planforge-integration.md](docs/planforge-integration.md#notifying-agent-planforge-of-new-commits).
+CI runs ruff lint and format checks, shellcheck on `scripts/*.sh`, mypy strict, pytest on Python 3.11, 3.12 and 3.13 with the coverage floor set in `ci.yml`, and a build and install check on every push and pull request to `master`. Pushes to `master` also open a bump task in agent-planforge; see [docs/planforge-integration.md](docs/planforge-integration.md#notifying-agent-planforge-of-new-commits).
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, coding standards, and PR process. Release history lives in [CHANGELOG.md](CHANGELOG.md).
 

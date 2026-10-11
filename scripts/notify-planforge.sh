@@ -10,7 +10,8 @@
 #   PLANFORGE_BOT_TOKEN    Bearer token for the agent-tasks API. If unset or
 #                          empty, this script no-ops (exit 0) with a visible
 #                          notice - the secret is provisioned by the operator
-#                          after this workflow merges, see README.
+#                          after this workflow merges, see
+#                          docs/planforge-integration.md.
 #   PLANFORGE_BASE_URL     e.g. https://agent-tasks.opentriologue.ai
 #   PLANFORGE_PROJECT_ID   agent-planforge's project id in agent-tasks.
 #   GITHUB_REPOSITORY      "owner/repo" of this scaffoldkit checkout.

@@ -10,7 +10,47 @@ scaffoldkit from-planforge ./scaffoldkit-input.json --target ./my-project
 
 Same flags as `scaffoldkit new` except for `--var` / `--non-interactive` / `--yes`: planforge supplies those values. The supported flags are `--target`, `--dry-run`, `--overwrite`, `--no-install`, `--blueprints-dir`, and `--no-ai-context`. The last is specific to `from-planforge`: it suppresses the blueprint's AI-context files (the `.ai/` tree and `AI_CONTEXT.md`), which is useful when the caller already owns its own agent context, e.g. the agent-planforge container whose `.ai/` would otherwise be clobbered by `--overwrite`.
 
-If the planforge-recommended blueprint isn't installed locally, the resolver walks `blueprintCandidates` in order and falls back to the first match, printing which fallback it picked. If none match, you get the candidate list plus the locally available blueprints in the error output.
+The resolver builds an ordered candidate list (an inferred framework blueprint, see [Generic API fallback](#generic-api-fallback), then `blueprint`, then `blueprintCandidates`) and uses the first one installed, printing a notice when that is not `blueprint`. If none is installed, you get the candidate list plus the locally available blueprints in the error output.
+
+### Flow
+
+`from-planforge` runs these steps in order:
+
+```mermaid
+sequenceDiagram
+    participant U as Caller
+    participant CLI as cli.from_planforge
+    participant PF as planforge.py
+    participant L as blueprint_loader.py
+    participant G as generator.generate
+    U->>CLI: scaffoldkit from-planforge input.json
+    CLI->>PF: load_planforge_export()
+    alt file missing or invalid
+        CLI-->>U: error, exit 1
+    end
+    CLI->>PF: resolve_blueprint_path()
+    alt no candidate installed
+        CLI-->>U: candidates, reason, local blueprints, exit 1
+    end
+    CLI->>L: load_blueprint()
+    opt resolved blueprint is not the primary
+        CLI-->>U: fallback notice
+    end
+    CLI->>PF: ignored_suggested_variables(), optional_section_warnings()
+    CLI->>PF: build_variables_from_planforge()
+    opt --no-ai-context
+        CLI->>CLI: ai_context = false, if the blueprint declares it
+    end
+    CLI->>G: generate(GenerationContext)
+    G-->>CLI: GenerationResult
+    alt generation errors
+        CLI-->>U: exit 1
+    else package.json, no --dry-run, no --no-install
+        CLI->>CLI: npm install
+    end
+```
+
+Without `--target`, the project is generated into `./<slug of projectName>` under the current directory.
 
 ## `scaffoldkit-input.json` schema
 
@@ -73,7 +113,7 @@ Empty `summary`, `features`, `constraints`, or `architecture.shape` print a warn
 `from-planforge` populates blueprint variables in this order:
 
 1. Start with the blueprint's declared defaults.
-2. Set `project_name` to a slug of `projectName`. Set `display_name` to `projectName`. Set `description` to `summary` (or `projectName` if blank).
+2. Set `project_name` to a slug of `projectName`. Set `display_name` to `projectName`. Set `description` to `summary`; if `summary` is empty, keep the blueprint's default description, and use `projectName` only when the blueprint declares none.
 3. Set `ai_context = true` if the blueprint has that variable.
 4. Apply every key in `suggestedVariables` that maps to a real blueprint variable. Unsupported keys are listed in a warning.
 5. For variables planforge did not set (and the blueprint default is unchanged), apply the inference rules below.
@@ -82,33 +122,33 @@ Empty `summary`, `features`, `constraints`, or `architecture.shape` print a warn
 
 ### Inference rules
 
-The combined text of `projectName`, `summary`, `features`, `constraints`, `architecture.shape`, and `stack.hint` is searched for keywords:
+Unless a row says otherwise, the combined text of `projectName`, `summary`, `features`, `constraints`, `architecture.shape`, and `stack.hint` is searched for keywords. Inferred values outside a blueprint's declared choices fall back to its default (step 6).
 
 | Variable | Trigger |
 |----------|---------|
 | `use_docker` | `docker`, `container`, `kubernetes`, `compose`. |
 | `language` | `typescript` -> `typescript`, `\bgo\b` -> `go`, `rust` -> `rust`, otherwise `python`. |
 | `cli_framework` | Derived from `language`: python -> `typer`, go -> `cobra`, rust -> `clap`, typescript -> `commander`. |
-| `distribution` | Compiled languages get `binary`, otherwise `pip-package`. |
+| `distribution` | `go`, `rust` and `typescript` get `binary`, otherwise `pip-package`. |
 | `test_strategy` | `git`/`sync`/`filesystem`/`queue`/`workflow`/`remote` -> `integration-tests`, otherwise `unit-tests`. Blueprint-specific overrides for `fastapi-backend` and `django-drf`. |
 | `use_analytics` | `analytics`/`dashboard`/`report`. |
 | `use_email` | `email`/`notification`/`invite`. |
 | `use_queue` | `background jobs`/`queue`/`workflow`/`notification`. |
 | `use_auth` | Forced `false` when `public-only`/`anonymous`/`no auth` appears. |
 | `use_openapi` | Default `true`. |
-| `db_provider` / `database` | `sqlite`/`mysql`/`mongo` keywords map to the matching choice, default `postgresql`. |
-| `framework` | TypeScript hint -> `express`, otherwise `fastapi`. |
-| `auth_strategy` | `public-only`/`anonymous` -> `none`, `api key` -> `api-key` (`token` for django-drf), `oauth2` -> `oauth2`, `sso`/`next-auth` (nextjs-fullstack only) -> `next-auth`, otherwise `jwt`. |
+| `db_provider` / `database` | Searches `stack.dataStore`, `constraints`, `features` and `summary`: `sqlite` or `mysql` select that choice, `mongo` selects `mongodb` (for `database` only), otherwise `postgresql`. |
+| `framework` | `express` when `stack.hint` contains the phrase `typescript service stack` (the hint agent-planforge emits for TypeScript stacks), otherwise `fastapi`. |
+| `auth_strategy` | Searches `summary`, `features` and `constraints`: `public-only`/`anonymous` -> `none`, `api key`/`api-key` -> `api-key` (`token` for django-drf), `session` -> `session` (django-drf only), `oauth2` -> `oauth2`, `sso`/`next-auth` -> `next-auth` (nextjs-fullstack only), otherwise `jwt`. |
 
 Blueprint-specific extras live alongside these rules. See `src/scaffoldkit/planforge.py` for the canonical implementation.
 
 ### Generic API fallback
 
-If planforge picks `rest-api` but the brief mentions Django/DRF/serializers, the resolver inserts `django-drf` ahead of `rest-api`. If it mentions FastAPI/Pydantic/uvicorn/Python, it inserts `fastapi-backend`. This keeps planforge from having to know every Python web framework upfront.
+If `rest-api` is the primary blueprint or one of the candidates and the export text (`projectName`, `summary`, `features`, `constraints`, `architecture.shape`, `stack.hint`, `stack.dataStore`) mentions Django, DRF, serializer, viewset or admin, the resolver puts `django-drf` first; otherwise, if it mentions FastAPI, Pydantic, uvicorn, ASGI or Python, it puts `fastapi-backend` first. The inferred blueprint is used even when `rest-api` is installed, and the CLI then prints the fallback notice. This keeps planforge from having to know every Python web framework upfront.
 
 ## Producing a `scaffoldkit-input.json`
 
-Planforge owns the export contract. From the planforge UI, the "Generate scaffold input" action writes the JSON to your chosen path; from the planforge CLI it lands next to your plan. Once you have the file, point `scaffoldkit from-planforge` at it.
+agent-planforge owns the export contract. Its CLI (`node scripts/bootstrap-plan.js --input <file> --outdir <dir>`) writes the file to `<dir>/exports/scaffoldkit-input.json`; its HTTP service reads the same path and can run `scaffoldkit from-planforge` on it. See agent-planforge's [operational workflow](https://github.com/LanNguyenSi/agent-planforge/blob/main/docs/operational-workflow.md). Point `scaffoldkit from-planforge` at that file.
 
 ## Notifying agent-planforge of new commits
 
