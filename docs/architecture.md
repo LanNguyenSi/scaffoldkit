@@ -1,6 +1,6 @@
 # Architecture
 
-ScaffoldKit is three layers stacked top to bottom: a Typer CLI / questionary TUI on top, a generation engine in the middle, and a YAML/Pydantic blueprint layer at the bottom. The engine is pure Python with no daemons, no remote services, and no shared state across runs.
+ScaffoldKit is three layers stacked top to bottom: a Typer CLI / questionary TUI on top (with the CLI-side helpers `planforge.py` and `scaffold_blueprint.py` below it), a generation engine in the middle, and a YAML/Pydantic blueprint layer at the bottom. The engine is pure Python with no daemons, no remote services, and no shared state across runs.
 
 ## Layer diagram
 
@@ -9,13 +9,19 @@ ScaffoldKit is three layers stacked top to bottom: a Typer CLI / questionary TUI
 │  TUI / CLI Layer                │  Interactive prompts, display
 │  (cli.py, tui.py)               │
 ├─────────────────────────────────┤
+│  CLI helpers                    │  planforge import, init-blueprint
+│  (planforge.py,                 │
+│   scaffold_blueprint.py)        │
+├─────────────────────────────────┤
 │  Generator / Rendering Layer    │  Template rendering, file I/O
 │  (generator.py, renderer.py,    │
 │   filesystem.py)                │
 ├─────────────────────────────────┤
-│  Blueprint / Data Layer         │  Models, loading, validation
-│  (models.py, blueprint_loader.py│
-│   validators.py)                │
+│  Blueprint / Data Layer         │  Models, loading, validation,
+│  (models.py,                    │  conditional variables
+│   blueprint_loader.py,          │
+│   validators.py,                │
+│   variable_conditions.py)       │
 └─────────────────────────────────┘
 ```
 
@@ -25,68 +31,77 @@ ScaffoldKit is three layers stacked top to bottom: a Typer CLI / questionary TUI
 |--------|----------------|
 | `cli.py` | Typer entry point. Owns the four subcommands (`new`, `from-planforge`, `init-blueprint`, `list`) and the post-generate `npm install` hook. |
 | `tui.py` | Interactive prompts (questionary + Rich). Blueprint picker, variable collection, target-dir prompt, confirmation summary, post-generate result printer. |
-| `generator.py` | Orchestrates a generation run: validates variables, prunes inactive ones, builds the Jinja context (including derived `is_*` flags), iterates templates and static files, creates declared directories, returns a `GenerationResult`. |
+| `generator.py` | Orchestrates a generation run: prunes inactive variables, validates the rest, builds the Jinja context (including derived `is_*` flags), creates declared directories, iterates templates and static files, returns a `GenerationResult`. |
 | `renderer.py` | Wraps Jinja2: env construction, string rendering for inline values, template rendering from disk, raises with file context on missing variables. |
-| `filesystem.py` | All file I/O: `ensure_directory`, `write_file`, `copy_file`. Honours `dry_run` and `overwrite` from the generation context. |
+| `filesystem.py` | All file I/O: `ensure_directory`, `write_file`, `copy_file`; honours `overwrite`. Dry-run is handled in `generator.py`, which skips these calls. |
 | `models.py` | Pydantic models: `Blueprint`, `BlueprintVariable`, `VariableType`, `GenerationContext`, `GenerationResult`. |
 | `blueprint_loader.py` | Discovery and parsing. Resolves the blueprints directory (env override -> local checkout -> packaged), parses `blueprint.yaml`, validates against the model. |
-| `validators.py` | Variable validation: required fields, type coercion, choice membership. |
+| `validators.py` | Variable validation: required fields, type checks, choice membership. |
 | `variable_conditions.py` | Prunes variables whose `condition` parent is falsy after collection. |
 | `planforge.py` | `scaffoldkit-input.json` schema (`PlanforgeExport`), variable mapping, inference rules, blueprint-candidate fallback. See [planforge-integration.md](planforge-integration.md). |
 | `scaffold_blueprint.py` | Backs `init-blueprint`: writes a starter `blueprint.yaml`, `templates/`, and `static/` skeleton. |
 
 ## Generation pipeline
 
-A `scaffoldkit new` invocation runs the same pipeline whether the variables come from the TUI, `--var` flags, or a planforge export.
+`scaffoldkit new` (variables from the TUI or `--var` flags) and `scaffoldkit from-planforge` (variables from a planforge export) share the same `generate()` pipeline. They differ in how the blueprint, the variables and the target directory are chosen.
+
+This diagram shows how each command gets from its arguments to a `generate()` call:
 
 ```mermaid
 flowchart TD
-    subgraph Inputs["Inputs"]
-        A["--var flags / questionary TUI<br/>tui.py"]
-        B["scaffoldkit-input.json<br/>planforge.py"]
-        C["cli.py"]
-    end
-
-    subgraph Loader["blueprint_loader.py"]
-        D{"get_blueprints_dir()"}
-        E[("blueprint.yaml")]
-        F["Blueprint<br/>models.py"]
-    end
-
-    subgraph Engine["generator.py"]
-        G["prune_inactive_variables()<br/>variable_conditions.py"]
-        H["validate_variables()<br/>validators.py"]
-        I["render_template()<br/>renderer.py"]
-        J["write_file / copy_file<br/>filesystem.py"]
-    end
-
-    K[("--target/<br/>project tree")]
-
-    A --> C
-    B --> C
-    C --> D
-    D -->|"env / checkout / packaged"| E
-    E --> F
-    F --> G
-    C -->|variables| G
-    G --> H
-    H --> I
-    I --> J
-    J --> K
+    NEW["scaffoldkit new<br/>cli.py"] --> BPD["--blueprints-dir or get_blueprints_dir()<br/>env / checkout / packaged"]
+    PF["scaffoldkit from-planforge<br/>cli.py"] --> EXP["load_planforge_export()<br/>planforge.py"]
+    EXP --> BPD
+    BPD -->|new| PICK{"BLUEPRINT_NAME given?"}
+    BPD -->|from-planforge| RES["resolve_blueprint_path()<br/>planforge.py"]
+    PICK -->|no| SEL["select_blueprint() in tui.py<br/>loads every blueprint<br/>to build the choice list"]
+    PICK -->|yes| LOAD["load_blueprint()<br/>blueprint_loader.py"]
+    RES --> LOAD
+    LOAD -->|new| COLLECT["collect_variables()<br/>--var values, defaults or prompts"]
+    SEL -->|chosen blueprint| COLLECT
+    COLLECT --> TARGET["--target or prompt_target_dir()"]
+    TARGET --> CONFIRM{"--non-interactive or --yes?"}
+    CONFIRM -->|no| ASK["confirm_generation()"]
+    LOAD -->|from-planforge| MAP["build_variables_from_planforge()<br/>planforge.py"]
+    MAP --> PTGT["--target or ./slug of projectName"]
+    CONFIRM -->|yes| GEN["generate()<br/>generator.py"]
+    ASK -->|confirmed| GEN
+    PTGT --> GEN
 ```
 
-1. **Resolve blueprints dir.** `SCAFFOLDKIT_BLUEPRINTS_DIR` env wins. Otherwise the loader walks up from `cwd` looking for a `pyproject.toml` plus `src/scaffoldkit/blueprints/` (so editing inside a checkout just works). Falls back to the packaged blueprints shipped with the wheel.
-2. **Load blueprint.** Parse `blueprint.yaml`, validate against the `Blueprint` model.
-3. **Collect variables.** Either via the TUI prompts or by merging `--var` flags with blueprint defaults under `--non-interactive`. Required variables without defaults still fail fast.
-4. **Prune.** `variable_conditions.prune_inactive_variables` drops variables whose `condition` parent is now falsy.
-5. **Validate.** `validators.py` checks required-ness, type coercion, choice membership.
-6. **Build template context.** `generator.build_template_context` adds the variables, blueprint metadata (`blueprint_name`, `blueprint_display_name`, `blueprint_stack`), plus a fixed set of derived `is_*` flags so templates can branch on language, framework, package manager, config format, build tool, and stack without restating the same string compares.
-7. **Render templates.** Each `templates[]` entry is rendered through Jinja2; the optional `condition` field skips entries whose variable is falsy. Both the `source` and `target` paths are themselves Jinja-rendered, so templates can live in `{{ stack }}/...` style folders.
-8. **Copy static files.** Each `static_files[]` entry is copied verbatim from `static/` to its `target`.
-9. **Create directories.** Each `directories[]` entry is materialised under the target.
-10. **Post-generate hook.** If the generated tree has a `package.json` and `--no-install` was not passed, `cli.py` runs `npm install` in the target directory. Missing `npm` is a warning, not a failure.
+This diagram shows what `generate()` does and what the CLI does with its result:
 
-`--dry-run` short-circuits steps 7-10: paths are computed and printed but no bytes are written.
+```mermaid
+flowchart TD
+    subgraph GENERATE["generate() in generator.py"]
+        PRUNE["prune_inactive_variables()"] --> VAL{"validate_variables()<br/>errors?"}
+        VAL -->|no| CTX["build_template_context()<br/>variables, is_* flags, metadata"]
+        CTX --> DIRS["ensure_directory(target_dir)<br/>directories[]: render_string,<br/>_safe_join, ensure_directory"]
+        DIRS --> TPL["templates[]<br/>condition, render target, _safe_join,<br/>render_template, write_file"]
+        TPL --> STATIC["static_files[]<br/>condition, render target, _safe_join,<br/>copy_file (no rendering)"]
+    end
+    VAL -->|yes| OUT["GenerationResult<br/>print_result()"]
+    STATIC --> OUT
+    OUT --> OK{"errors?"}
+    OK -->|yes| EXIT["exit 1"]
+    OK -->|no| NPM{"package.json, no --dry-run,<br/>no --no-install?"}
+    NPM -->|yes| INSTALL["npm install<br/>cli.py"]
+```
+
+1. **Resolve blueprints dir.** `--blueprints-dir` wins, then the `SCAFFOLDKIT_BLUEPRINTS_DIR` env var. Otherwise the loader walks up from `cwd` looking for a `pyproject.toml` plus `src/scaffoldkit/blueprints/` (so editing inside a checkout just works). Falls back to the packaged blueprints shipped with the wheel.
+2. **Load blueprint.** Parse `blueprint.yaml`, validate against the `Blueprint` model. `from-planforge` first picks the blueprint from the export's candidates (see [planforge-integration.md](planforge-integration.md)).
+3. **Collect variables.** For `new`, either via the TUI prompts or by merging `--var` flags with blueprint defaults under `--non-interactive`; required variables without defaults still fail fast. For `from-planforge`, the variables are mapped from the export.
+4. **Prune.** `variable_conditions.prune_inactive_variables` drops variables whose `condition` parent is now falsy.
+5. **Validate.** `validators.py` checks required-ness, value types, and choice membership.
+6. **Build template context.** `generator.build_template_context` adds the variables, the blueprint identity fields (`blueprint_name`, `blueprint_display_name`, `blueprint_stack`), and a fixed set of derived `is_*` flags so templates can branch on language, framework, package manager, config format, build tool, stack, API style, test runner and static-site options without restating the same string compares. The blueprint's `metadata` map is merged last. See [Conditions and derived flags](blueprints.md#conditions-and-derived-flags) for the full list.
+7. **Create directories.** The target directory and each `directories[]` entry (rendered through Jinja) are created under the target.
+8. **Render templates.** Each `templates[]` entry is rendered through Jinja2; the optional `condition` field skips entries whose condition key is missing or falsy in the template context. The `target` path is itself Jinja-rendered, so output paths can depend on variables. The `source` path is used literally, relative to `templates/`; to vary the source by stack, declare one entry per variant and gate each with `condition`.
+9. **Copy static files.** Each `static_files[]` entry whose `condition` holds is copied verbatim from `static/` to its `target`. Only the `target` path is rendered; the file content is not.
+10. **Post-generate hook.** Only when generation reported no errors: if the generated tree has a `package.json` and neither `--no-install` nor `--dry-run` was passed, `cli.py` runs `npm install` in the target directory. Missing `npm` is a warning, not a failure. Generation errors exit with status 1 instead.
+
+Every rendered directory and file target in steps 7-9 goes through the path-containment check described below.
+
+With `--dry-run`, steps 7-9 compute and print paths without creating directories or writing files (templates are still rendered), and step 10 is skipped.
 
 ## Watch and incremental?
 
@@ -94,14 +109,22 @@ There isn't one. Generation is a one-shot operation. There is no daemon, no incr
 
 ## Path containment
 
-Rendered target paths come from untrusted sources (user `--var` input and third-party blueprints), so every generated file and directory is routed through `generator._safe_join`. It resolves the rendered path against the target directory and raises if the result escapes it, refusing absolute paths and `..` traversal. An unsafe entry is recorded as a generation error and skipped rather than written outside the target tree. This containment makes running a blueprint from an untrusted source safe by construction.
+Rendered target paths come from untrusted sources (user `--var` input and third-party blueprints), so every generated file and directory is routed through `generator._safe_join`. It resolves the rendered path against the target directory and raises if the result escapes it, refusing absolute paths and `..` traversal. An unsafe entry is recorded as a generation error and skipped rather than written outside the target tree.
+
+The guard controls only where files are written. It does not make a third-party blueprint safe to run:
+
+- Templates and target strings render in a standard, unsandboxed Jinja2 environment, so template code runs with the permissions of the scaffoldkit process. This also happens under `--dry-run`, which skips only the writes.
+- `static_files` sources are joined onto `static/` without a containment check, so a blueprint can copy other readable files from the host into the generated project.
+- When the output contains a `package.json`, `scaffoldkit new` and `scaffoldkit from-planforge` run `npm install`, which executes that package's lifecycle scripts.
+
+Review a blueprint before you run it, and pass `--no-install` for one you have not reviewed.
 
 ## Design principles
 
 - **Declarative over hard-coded.** Blueprints are YAML, templates are Jinja2. Adding a stack is adding a folder, not editing the engine.
 - **Extensible over perfect.** The model is intentionally flat (no nested variables, no remote registry). New blueprints land as folders; new shipped blueprints are committed to `src/scaffoldkit/blueprints/`.
 - **Locally runnable.** No external services required. `from-planforge` reads a local file. Embeddings, networks, and daemons are out of scope.
-- **AI-friendly by design.** Every blueprint ships an `AI_CONTEXT.md`, an `architecture.md`, an ADR seed, and ways-of-working notes so a downstream Claude Code or Cursor session has real grounding from the first turn.
+- **AI-friendly by design.** Every blueprint ships an architecture doc and an ADR seed and, unless `ai_context` is false, agent context files (`AI_CONTEXT.md`; `express-api` ships an `.ai/` tree instead). All blueprints except `express-api` also ship ways-of-working notes. A downstream Claude Code or Cursor session has real grounding from the first turn.
 
 ## Technologies
 
@@ -123,7 +146,8 @@ scaffoldkit/
 ├── install.sh                # One-line installer (uv or Docker)
 ├── Makefile                  # Build, test, install shortcuts
 ├── Dockerfile                # Container build
-├── scaffoldkit-docker        # Docker wrapper script
+├── scaffoldkit-docker        # Docker wrapper script (not installed by install.sh)
+├── docker-compose.yml        # scaffoldkit service, ./output mounted at /workspace
 ├── pyproject.toml
 ├── src/
 │   └── scaffoldkit/
@@ -139,14 +163,17 @@ scaffoldkit/
 │       ├── planforge.py
 │       ├── scaffold_blueprint.py
 │       └── blueprints/        # 12 shipped blueprints
-├── tests/                     # pytest suite: models, loader, validators, renderer, filesystem, generator, CLI, integration
+├── tests/                     # pytest suite: engine modules, CLI, TUI, planforge, notify script, per-blueprint and contract-audit tests
+├── docs/                      # architecture, blueprints, CLI and planforge reference
 ├── scripts/
 │   └── notify-planforge.sh    # files an agent-planforge bump task on master push
 ├── .github/workflows/
-│   ├── ci.yml                 # lint, mypy strict, pytest 3.11/3.12/3.13, build+install
-│   └── notify-planforge.yml   # runs scripts/notify-planforge.sh on push to master
+│   ├── ci.yml                 # lint, shellcheck, mypy strict, pytest 3.11/3.12/3.13 with coverage floor, build+install
+│   ├── notify-planforge.yml   # runs scripts/notify-planforge.sh on push to master
+│   └── release.yml            # on v* tags: rerun CI, check version and changelog, publish a GitHub Release
 ├── CONTRIBUTING.md
 ├── CHANGELOG.md
+├── SECURITY.md
 └── LICENSE
 ```
 
@@ -160,10 +187,17 @@ The pytest suite covers:
 - **Renderer.** String rendering, template rendering, missing-variable errors.
 - **Filesystem.** Directory creation, file writing, copy, overwrite protection.
 - **Generator.** Full pipeline, dry-run, conditions, overwrite, static files.
+- **Variable conditions.** Activation and pruning of conditional variables.
 - **CLI.** Command help, blueprint listing, error paths.
+- **TUI.** Non-interactive variable collection.
+- **Planforge.** Export loading, variable mapping and inference helpers.
+- **init-blueprint.** The starter blueprint written by `scaffold_blueprint.py`.
+- **Notify script.** Runs `scripts/notify-planforge.sh` against a local HTTP mock: request shape, idempotency, supersede and error handling.
+- **Per-blueprint tests.** Generation and starter-file checks for the shipped blueprints (`test_*_starter.py`, `test_*_blueprint*.py` and similar).
+- **Blueprint contract audit.** Every declared variable is referenced by a template or static file or used as the `condition` of a `templates` or `static_files` entry, `use_docker`/`use_ci` gate matching files, runnable blueprints declare their primary manifests, and generated workflows pin the expected action majors.
 - **Integration.** End-to-end generation across stack/style/feature variations.
 
-CI runs ruff lint+format, mypy strict, pytest on Python 3.11, 3.12, 3.13, and a build+install verification on every push and PR to `master`.
+CI runs ruff lint and format checks, shellcheck on `scripts/*.sh`, mypy strict, pytest on Python 3.11, 3.12 and 3.13 with the coverage floor set in `ci.yml`, and a build and install check on every push and pull request to `master`.
 
 ## Assumptions and limits
 

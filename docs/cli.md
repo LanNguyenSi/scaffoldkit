@@ -4,7 +4,7 @@ ScaffoldKit ships a single `scaffoldkit` binary built on [Typer](https://typer.t
 
 ## Installation
 
-No Python install required on your host. Pick the path that fits.
+Options A and B need no Python on your host (uv provides it for option A, the image for option B). Options D to F need Python 3.11 or newer. Pick the path that fits.
 
 ### Option A: One-line installer (recommended)
 
@@ -24,7 +24,9 @@ cd scaffoldkit
 ./install.sh --docker
 ```
 
-Builds the image and installs a thin wrapper. Only Docker and Bash required. You can also call the wrapper directly:
+Builds the `scaffoldkit:latest` image and installs a wrapper named `scaffoldkit` in `~/.local/bin`. The wrapper mounts the current directory at `/workspace` and passes every argument to the container, so you use it like the native command (`scaffoldkit new`, `scaffoldkit list`). Only Docker and Bash are required.
+
+The repository also ships `./scaffoldkit-docker`, a separate script that the installer does not put on your PATH; it takes wrapper options before `--` (see [Docker wrappers](#docker-wrappers)):
 
 ```bash
 docker build -t scaffoldkit:latest .
@@ -34,6 +36,8 @@ docker build -t scaffoldkit:latest .
 ./scaffoldkit-docker --build --output ./projects -- new # rebuild before running
 ```
 
+With Docker Compose, `docker compose run --rm scaffoldkit new` runs the CLI with `./output` mounted as the working directory; pass `--target` as a relative path.
+
 ### Option C: Makefile shortcuts
 
 ```bash
@@ -41,6 +45,8 @@ make install          # same as ./install.sh
 make install-docker   # same as ./install.sh --docker
 make dev              # create .venv with dev dependencies
 ```
+
+Run `make help` for the full list (test, lint, typecheck, check, build, docker-build, clean).
 
 ### Option D: pipx (isolated installation)
 
@@ -107,10 +113,10 @@ scaffoldkit new [BLUEPRINT_NAME] [OPTIONS]
 | `--no-install` | Skip `npm install` after generation (Node blueprints only). |
 | `-b, --blueprints-dir PATH` | Use a custom blueprints directory. |
 | `--var KEY=VALUE` | Set a blueprint variable. Repeatable. |
-| `--non-interactive` | Use provided values plus blueprint defaults. Required vars without defaults still fail fast. |
+| `--non-interactive` | Use provided values plus blueprint defaults, and skip the confirmation prompt. Required vars without defaults still fail fast. The target directory is still prompted for unless `--target` is given. |
 | `-y, --yes` | Skip the confirmation prompt. |
 
-`--var` accepts `true`/`false`, `yes`/`no`, `1`/`0` for booleans. Conditional variables are skipped automatically when their parent flag is disabled.
+`--var` turns the values `true`/`false`, `yes`/`no`, `1`/`0` (any case) into booleans for every variable, whatever its declared type, so a string variable cannot be set to one of these literals from the command line. Conditional variables are skipped automatically when their parent flag is disabled.
 
 ### Interactive
 
@@ -152,7 +158,7 @@ scaffoldkit new symfony-backend \
 
 ### Post-generate npm install
 
-If the generated project contains a `package.json` and `--no-install` is not passed, `scaffoldkit new` runs `npm install` in the target directory after generation. Missing `npm` produces a warning, not a failure.
+If generation reports no errors, the generated project contains a `package.json`, and neither `--no-install` nor `--dry-run` is passed, `scaffoldkit new` runs `npm install` in the target directory after generation. `npm install` runs the lifecycle scripts of the generated `package.json`, so pass `--no-install` for a blueprint you have not reviewed (see [Path containment](architecture.md#path-containment)). Missing `npm` produces a warning, not a failure.
 
 ## `scaffoldkit from-planforge`
 
@@ -174,7 +180,14 @@ Scaffold a new blueprint folder in the resolved blueprints directory, with start
 scaffoldkit init-blueprint my-custom-stack
 ```
 
+| Option | Description |
+|--------|-------------|
+| `NAME` | Name of the new blueprint folder. |
+| `-b, --blueprints-dir PATH` | Create the blueprint in this directory instead of the resolved one. |
+
 Creates `my-custom-stack/` inside the resolved blueprints directory (see [resolution order](#scaffoldkit-list)) with `blueprint.yaml`, `templates/`, and `static/` skeletons. Edit, then `scaffoldkit list` to verify and `scaffoldkit new my-custom-stack` to test.
+
+Outside a scaffoldkit checkout, pass `-b <dir>` (or set `SCAFFOLDKIT_BLUEPRINTS_DIR`) so the blueprint is created in a directory you keep, and use the same `-b` with `list` and `new`. Otherwise it is written into the installed package's blueprints folder, and under Docker into the container, where it is discarded on exit.
 
 ## `scaffoldkit list`
 
@@ -206,13 +219,26 @@ The blueprints directory is resolved in this order:
 
 `-b, --blueprints-dir PATH` overrides all of the above.
 
-## Docker wrapper
+## Docker wrappers
+
+`./install.sh --docker` installs a wrapper named `scaffoldkit` that mounts the current directory at `/workspace` and forwards every argument to the container. It takes no wrapper options.
+
+The repository-root script `./scaffoldkit-docker` is separate and is not installed on your PATH. Run it from the checkout:
 
 ```bash
-scaffoldkit-docker --output ./projects -- new                        # interactive
-scaffoldkit-docker -- list                                           # list blueprints
-scaffoldkit-docker --print -- new saas-dashboard                     # show docker command without running
-scaffoldkit-docker --build --output ./projects -- new                # rebuild image then run
+./scaffoldkit-docker --output ./projects -- new                      # interactive
+./scaffoldkit-docker -- list                                         # list blueprints
+./scaffoldkit-docker --print -- new saas-dashboard                   # show docker command without running
+./scaffoldkit-docker --build --output ./projects -- new              # rebuild image then run
 ```
 
+| Option | Description |
+|--------|-------------|
+| `--output DIR` | Mount `DIR` at `/workspace` (default: the current directory). |
+| `--build` | Rebuild the image before running. |
+| `--print` | Print the `docker run` command without running it. |
+| `SCAFFOLDKIT_IMAGE` (env var) | Override the image (default: `scaffoldkit:latest`). |
+
 Anything after `--` is passed straight to `scaffoldkit` inside the container. The `--output` host directory is mounted so generated projects land on your host filesystem.
+
+Inside the container, for either wrapper, pass `--target` as a path under the mounted directory (a relative path works). The image has no `npm`, so the post-generate install step prints a warning and is skipped. The image pins `SCAFFOLDKIT_BLUEPRINTS_DIR` to its bundled blueprints; for custom blueprints, place them under the mounted directory and pass `-b <relative path>`.
