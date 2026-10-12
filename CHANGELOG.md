@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `scripts/notify-planforge.sh` no longer opens an agent-planforge bump task for a push to master that changes only documentation (root-level `*.md`, `docs/`, `LICENSE`, the pull request and issue templates); it logs a notice instead (task fad112cc). Script changes, including comment-only ones, Markdown outside `docs/`, renames out of a non-documentation path and empty pushes still open the task. See `docs/planforge-integration.md`.
+- `from-planforge` tells the two fallback cases apart: "Using inferred blueprint ... instead of primary ..." when an inferred blueprint wins while the primary is installed, "Primary blueprint ... is not installed; using fallback ... instead" otherwise (task 63f3322f).
+- Planforge import infers `framework=express` for every TypeScript `stack.hint` (service stack, CLI tool, web application), not only the TypeScript service stack.
+- `scaffoldkit.__version__` is read from the installed package metadata; a release only bumps `pyproject.toml`.
+- The `--non-interactive` help says that the target directory is still prompted for unless `--target` is given, and the missing-token notice of `scripts/notify-planforge.sh` points to `docs/planforge-integration.md`.
 
 ## [0.4.2] - 2026-10-04
 

@@ -108,7 +108,14 @@ def new(
         list[str] | None, typer.Option("--var", help="Variable in key=value format (repeatable)")
     ] = None,
     non_interactive: Annotated[
-        bool, typer.Option("--non-interactive", help="Non-interactive mode (use defaults)")
+        bool,
+        typer.Option(
+            "--non-interactive",
+            help=(
+                "Use provided values plus blueprint defaults and skip the confirmation "
+                "prompt; the target directory is still prompted for unless --target is given"
+            ),
+        ),
     ] = False,
     yes: Annotated[bool, typer.Option("--yes", "-y", help="Skip the confirmation prompt")] = False,
 ) -> None:
@@ -242,10 +249,17 @@ def from_planforge(
 
     blueprint = load_blueprint(bp_path)
     if fallback_from:
-        console.print(
-            f"[yellow]Primary blueprint '{fallback_from}' unavailable; using "
-            f"fallback '{blueprint.name}' instead.[/yellow]"
-        )
+        if (bp_dir / fallback_from / "blueprint.yaml").exists():
+            # The primary is installed, but an inferred blueprint was preferred.
+            console.print(
+                f"[yellow]Using inferred blueprint '{blueprint.name}' instead of "
+                f"primary '{fallback_from}'.[/yellow]"
+            )
+        else:
+            console.print(
+                f"[yellow]Primary blueprint '{fallback_from}' is not installed; using "
+                f"fallback '{blueprint.name}' instead.[/yellow]"
+            )
 
     ignored_variables = ignored_suggested_variables(export_data, blueprint)
     if ignored_variables:

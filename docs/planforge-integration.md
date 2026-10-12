@@ -138,14 +138,14 @@ Unless a row says otherwise, the combined text of `projectName`, `summary`, `fea
 | `use_auth` | Forced `false` when `public-only`/`anonymous`/`no auth` appears. |
 | `use_openapi` | Default `true`. |
 | `db_provider` / `database` | Searches `stack.dataStore`, `constraints`, `features` and `summary`: `sqlite` or `mysql` select that choice, `mongo` selects `mongodb` (for `database` only), otherwise `postgresql`. |
-| `framework` | `express` when `stack.hint` contains the phrase `typescript service stack` (the hint agent-planforge emits for a TypeScript service; its TypeScript CLI and web-application hints do not match), otherwise `fastapi`. |
+| `framework` | `express` when `stack.hint` contains `typescript` (any of agent-planforge's TypeScript hints: service stack, CLI tool, web application), otherwise `fastapi`. |
 | `auth_strategy` | Searches `summary`, `features` and `constraints`: `public-only`/`anonymous` -> `none`, `api key`/`api-key` -> `api-key` (`token` for django-drf), `session` -> `session` (django-drf only), `oauth2` -> `oauth2`, `sso`/`next-auth` -> `next-auth` (nextjs-fullstack only), otherwise `jwt`. |
 
 Blueprint-specific extras live alongside these rules. See `src/scaffoldkit/planforge.py` for the canonical implementation.
 
 ### Generic API fallback
 
-If `rest-api` is the primary blueprint or one of the candidates and the export text (`projectName`, `summary`, `features`, `constraints`, `architecture.shape`, `stack.hint`, `stack.dataStore`) mentions Django, DRF, serializer, viewset or admin, the resolver puts `django-drf` first; otherwise, if it mentions FastAPI, Pydantic, uvicorn, ASGI or Python, it puts `fastapi-backend` first. The inferred blueprint is used even when `rest-api` is installed, and the CLI then prints the fallback notice. This keeps planforge from having to know every Python web framework upfront.
+If `rest-api` is the primary blueprint or one of the candidates and the export text (`projectName`, `summary`, `features`, `constraints`, `architecture.shape`, `stack.hint`, `stack.dataStore`) mentions Django, DRF, serializer, viewset or admin, the resolver puts `django-drf` first; otherwise, if it mentions FastAPI, Pydantic, uvicorn, ASGI or Python, it puts `fastapi-backend` first. The inferred blueprint is used even when `rest-api` is installed; the CLI then prints "Using inferred blueprint ... instead of primary ...", and when the primary blueprint is not installed at all it prints "Primary blueprint ... is not installed; using fallback ... instead". This keeps planforge from having to know every Python web framework upfront.
 
 ## Producing a `scaffoldkit-input.json`
 

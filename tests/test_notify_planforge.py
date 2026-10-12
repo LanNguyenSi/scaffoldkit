@@ -168,6 +168,7 @@ class TestMissingToken:
             assert result.returncode == 0
             assert server.requests == []
         assert "PLANFORGE_BOT_TOKEN is not set" in result.stderr
+        assert "docs/planforge-integration.md" in result.stderr
 
 
 class TestCreatesTask:

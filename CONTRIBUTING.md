@@ -107,7 +107,7 @@ test: add edge case tests for renderer
 
 ## Releasing
 
-1. Bump `version` in `pyproject.toml` and `__version__` in `src/scaffoldkit/__init__.py`.
+1. Bump `version` in `pyproject.toml`. `scaffoldkit --version` and `scaffoldkit.__version__` read the installed package metadata, so nothing else needs a version bump.
 2. Move the `[Unreleased]` entries in `CHANGELOG.md` under a new `## [x.y.z]` section.
 3. Merge the change to `master`.
 4. Push the tag `vx.y.z`.

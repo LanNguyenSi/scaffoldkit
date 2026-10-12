@@ -22,6 +22,11 @@ class TestVersionFlag:
         assert result.exit_code == 0
         assert result.output.strip() == f"scaffoldkit {version('scaffoldkit')}"
 
+    def test_module_version_matches_package_metadata(self):
+        import scaffoldkit
+
+        assert scaffoldkit.__version__ == version("scaffoldkit")
+
 
 class TestListCommand:
     def test_lists_blueprints(self):
@@ -251,7 +256,10 @@ class TestFromPlanforgeCommand:
         )
 
         assert result.exit_code == 0
-        assert "using fallback 'express-api'" in result.output
+        output = " ".join(result.output.split())
+        assert "Primary blueprint 'missing-blueprint' is not installed" in output
+        assert "using fallback 'express-api'" in output
+        assert "inferred blueprint" not in output
         assert (target / "README.md").exists()
 
     def test_prefers_fastapi_backend_for_generic_python_api_exports(self, tmp_path):
@@ -278,7 +286,9 @@ class TestFromPlanforgeCommand:
         )
 
         assert result.exit_code == 0
-        assert "fallback 'fastapi-backend'" in result.output
+        output = " ".join(result.output.split())
+        assert "Using inferred blueprint 'fastapi-backend' instead of primary 'rest-api'" in output
+        assert "is not installed" not in output
         assert (target / "src" / "routes").is_dir()
         # fastapi-backend now shares the src/ layout with the thin rest-api (so the
         # planner's src/ task paths match); its richer layered dirs distinguish it.
@@ -309,7 +319,8 @@ class TestFromPlanforgeCommand:
         )
 
         assert result.exit_code == 0
-        assert "fallback 'django-drf'" in result.output
+        output = " ".join(result.output.split())
+        assert "Using inferred blueprint 'django-drf' instead of primary 'rest-api'" in output
         assert (target / "config" / "settings").is_dir()
         assert not (target / "src" / "routes").exists()
 
@@ -520,3 +531,11 @@ class TestNpmInstall:
 
         assert result.exit_code == 0, result.output
         assert "npm not found" in result.output
+
+
+def test_non_interactive_help_mentions_target_prompt():
+    result = runner.invoke(app, ["new", "--help"])
+    assert result.exit_code == 0
+    # rich wraps the help panel and prefixes each wrapped line with a border.
+    output = " ".join(result.output.replace("\u2502", " ").split())
+    assert "still prompted for unless --target is given" in output
