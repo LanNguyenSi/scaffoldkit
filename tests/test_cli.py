@@ -1,6 +1,7 @@
 """Tests for CLI commands."""
 
 import json
+import re
 import subprocess
 from importlib.metadata import version
 
@@ -536,6 +537,8 @@ class TestNpmInstall:
 def test_non_interactive_help_mentions_target_prompt():
     result = runner.invoke(app, ["new", "--help"])
     assert result.exit_code == 0
-    # rich wraps the help panel and prefixes each wrapped line with a border.
-    output = " ".join(result.output.replace("\u2502", " ").split())
+    # rich may colour the help (CI forces colour), wraps the panel and prefixes
+    # each wrapped line with a border.
+    plain = re.sub(r"\x1b\[[0-9;]*m", "", result.output).replace("\u2502", " ")
+    output = " ".join(plain.split())
     assert "still prompted for unless --target is given" in output
