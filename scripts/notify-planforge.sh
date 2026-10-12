@@ -79,7 +79,7 @@ is_docs_only_path() {
 }
 
 if [ -z "${PLANFORGE_BOT_TOKEN:-}" ]; then
-  notice "PLANFORGE_BOT_TOKEN is not set; skipping the agent-planforge bump-task notification. This is expected until the operator provisions the secret (see README)."
+  notice "PLANFORGE_BOT_TOKEN is not set; skipping the agent-planforge bump-task notification. This is expected until the operator provisions the secret (see docs/planforge-integration.md, section \"Notifying agent-planforge of new commits\")."
   exit 0
 fi
 

@@ -8,7 +8,8 @@
 
 ## Test plan
 
-- [ ] `pytest tests/`
+- [ ] `pytest tests/ --cov=src/scaffoldkit --cov-fail-under=83` (the coverage floor CI enforces in `.github/workflows/ci.yml`)
+- [ ] `shellcheck scripts/*.sh`
 - [ ] `ruff check src/ tests/`
 - [ ] `ruff format --check src/ tests/` (CI also enforces this)
 - [ ] For blueprint changes: generated a sample project and verified output

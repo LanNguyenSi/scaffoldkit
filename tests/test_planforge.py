@@ -5,13 +5,17 @@ from pathlib import Path
 
 import pytest
 
+from scaffoldkit.blueprint_loader import load_blueprint
 from scaffoldkit.planforge import (
     PlanforgeExport,
+    build_variables_from_planforge,
     default_target_name,
     infer_auth_strategy,
     infer_database_choice,
     load_planforge_export,
 )
+
+BLUEPRINTS_DIR = Path(__file__).resolve().parent.parent / "src" / "scaffoldkit" / "blueprints"
 
 
 def _minimal_export(**kwargs) -> PlanforgeExport:
@@ -114,3 +118,21 @@ class TestInferAuthStrategy:
     def test_no_signal_defaults_to_jwt(self):
         export = _minimal_export()
         assert infer_auth_strategy(export, "rest-api") == "jwt"
+
+
+class TestFrameworkInference:
+    @pytest.mark.parametrize(
+        ("hint", "expected"),
+        [
+            ("TypeScript service stack", "express"),
+            ("TypeScript CLI tool", "express"),
+            ("TypeScript web application", "express"),
+            ("Python application stack", "fastapi"),
+            ("", "fastapi"),
+        ],
+    )
+    def test_rest_api_framework_follows_the_stack_hint(self, hint, expected):
+        export = _minimal_export(summary="Service for ledgers.", stack={"hint": hint})
+        blueprint = load_blueprint(BLUEPRINTS_DIR / "rest-api")
+        variables = build_variables_from_planforge(export, blueprint)
+        assert variables["framework"] == expected

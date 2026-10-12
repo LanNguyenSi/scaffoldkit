@@ -168,7 +168,9 @@ def build_variables_from_planforge(
     if should_infer("database"):
         variables["database"] = infer_database_choice(export_data, "database")
     if should_infer("framework"):
-        ts_hint = "typescript service stack" in export_data.stack.hint.lower()
+        # Every TypeScript hint agent-planforge emits (service stack, CLI tool,
+        # web application) maps to the TypeScript framework of the blueprint.
+        ts_hint = "typescript" in export_data.stack.hint.lower()
         variables["framework"] = "express" if ts_hint else "fastapi"
     if blueprint.name == "fastapi-backend":
         if should_infer("db_provider"):
